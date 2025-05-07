@@ -1,182 +1,201 @@
-"use client";
+"use client"
 
-import type React from "react";
+import type React from "react"
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { useState, useEffect } from "react"
+import Link from "next/link"
+import { useRouter, useSearchParams } from "next/navigation"
+import { ArrowLeft } from "lucide-react"
 
 export default function LoginPage() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const [isLoading, setIsLoading] = useState(false);
-  const [isCheckingStatus, setIsCheckingStatus] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const [isLoading, setIsLoading] = useState(false)
+  const [isCheckingStatus, setIsCheckingStatus] = useState(false)
+  const [message, setMessage] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     email: "",
     password: "",
-  });
+  })
   const [errors, setErrors] = useState({
     email: "",
     password: "",
     general: "",
-  });
+  })
 
   useEffect(() => {
     // Check for message in URL params
-    const urlMessage = searchParams.get("message");
+    const urlMessage = searchParams.get("message")
     if (urlMessage) {
-      setMessage(urlMessage);
+      setMessage(urlMessage)
     }
 
     // Check if we need to verify data fetch status
-    const email = localStorage.getItem("pendingLoginEmail");
+    const email = localStorage.getItem("pendingLoginEmail")
     if (email) {
-      setFormData((prev) => ({ ...prev, email }));
-      setIsCheckingStatus(true);
-      checkDataFetchStatus(email);
+      setFormData((prev) => ({ ...prev, email }))
+      setIsCheckingStatus(true)
+      checkDataFetchStatus(email)
     }
-  }, [searchParams]);
+  }, [searchParams])
 
   const checkDataFetchStatus = async (email: string) => {
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/users/data-fetch-status-by-email`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ email }),
-        }
-      );
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/data-fetch-status-by-email`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      })
 
-      const result = await response.json();
+      const result = await response.json()
 
       if (response.ok && result.status === "completed") {
-        setIsCheckingStatus(false);
-        localStorage.removeItem("pendingLoginEmail");
-        setMessage("Your account is ready! You can now sign in.");
+        setIsCheckingStatus(false)
+        localStorage.removeItem("pendingLoginEmail")
+        setMessage("Your account is ready! You can now sign in.")
       } else if (response.ok && result.status === "pending") {
         // Keep checking every 5 seconds
-        setTimeout(() => checkDataFetchStatus(email), 5000);
+        setTimeout(() => checkDataFetchStatus(email), 5000)
       } else {
         // Either failed or user doesn't exist
-        setIsCheckingStatus(false);
-        localStorage.removeItem("pendingLoginEmail");
+        setIsCheckingStatus(false)
+        localStorage.removeItem("pendingLoginEmail")
       }
     } catch (error) {
-      console.error("Error checking status:", error);
-      setIsCheckingStatus(false);
+      console.error("Error checking status:", error)
+      setIsCheckingStatus(false)
     }
-  };
+  }
+
+  const checkEmailVerification = async (email: string) => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/check-email-verification`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      })
+
+      const result = await response.json()
+
+      if (response.ok) {
+        return result.verified
+      }
+      return true // Default to true if we can't check
+    } catch (error) {
+      console.error("Error checking email verification:", error)
+      return true // Default to true if we can't check
+    }
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
+    const { name, value } = e.target
     setFormData((prev) => ({
       ...prev,
       [name]: value,
-    }));
-  };
+    }))
+  }
 
   const validateForm = () => {
-    let valid = true;
+    let valid = true
     const newErrors = {
       email: "",
       password: "",
       general: "",
-    };
+    }
 
     if (!formData.email.includes("@") || !formData.email.includes(".")) {
-      newErrors.email = "Please enter a valid email address.";
-      valid = false;
+      newErrors.email = "Please enter a valid email address."
+      valid = false
     }
 
     if (formData.password.length < 1) {
-      newErrors.password = "Password is required.";
-      valid = false;
+      newErrors.password = "Password is required."
+      valid = false
     }
 
-    setErrors(newErrors);
-    return valid;
-  };
+    setErrors(newErrors)
+    return valid
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
 
     if (!validateForm()) {
-      return;
+      return
     }
 
-    setIsLoading(true);
+    setIsLoading(true)
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/users/login`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(formData),
-        }
-      );
+      // First check if email is verified
+      // const isVerified = await checkEmailVerification(formData.email)
 
-      const result = await response.json();
+      // if (!isVerified) {
+      //   // Redirect to signup page with email pre-filled for verification
+      //   router.push(`/signup?email=${encodeURIComponent(formData.email)}&needsVerification=true`)
+      //   return
+      // }
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      })
+
+      const result = await response.json()
 
       if (!response.ok) {
         // Check if this is a "data still fetching" error
         if (result.dataFetchStatus === "pending") {
-          localStorage.setItem("pendingLoginEmail", formData.email);
-          setIsCheckingStatus(true);
+          localStorage.setItem("pendingLoginEmail", formData.email)
+          setIsCheckingStatus(true)
           setErrors({
             email: "",
             password: "",
-            general:
-              "Your account is still being set up. Please wait a moment before signing in.",
-          });
+            general: "Your account is still being set up. Please wait a moment before signing in.",
+          })
           // Start checking status
-          checkDataFetchStatus(formData.email);
-          setIsLoading(false);
-          return;
+          checkDataFetchStatus(formData.email)
+          setIsLoading(false)
+          return
         }
 
-        throw new Error(result.message || "Invalid credentials");
+        throw new Error(result.message || "Invalid credentials")
       }
 
       // Store token and user data in localStorage
-      localStorage.setItem("token", result.token);
-      localStorage.setItem("user", JSON.stringify(result.user));
+      localStorage.setItem("token", result.token)
+      localStorage.setItem("user", JSON.stringify(result.user))
 
       // Redirect to dashboard
-      router.push("/dashboard");
+      router.push("/dashboard")
     } catch (error) {
-      console.error("Login error:", error);
+      console.error("Login error:", error)
       setErrors((prev) => ({
         ...prev,
         general: error instanceof Error ? error.message : "Failed to login",
-      }));
+      }))
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   return (
     <div className="min-h-screen bg-white">
       <div className="max-w-md mx-auto px-4 py-12">
-        <Link
-          href="/"
-          className="inline-flex items-center mb-8 text-sm text-gray-600 hover:text-gray-900"
-        >
+        <Link href="/" className="inline-flex items-center mb-8 text-sm text-gray-600 hover:text-gray-900">
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to home
         </Link>
 
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold">Welcome back</h1>
-          <p className="text-sm text-gray-600 mt-2">
-            Enter your credentials to sign in to your account
-          </p>
+          <p className="text-sm text-gray-600 mt-2">Enter your credentials to sign in to your account</p>
         </div>
 
         <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
@@ -195,17 +214,12 @@ export default function LoginPage() {
           {isCheckingStatus ? (
             <div className="text-center py-4">
               <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-green-600 border-r-transparent mb-4"></div>
-              <p className="text-sm text-gray-600">
-                Checking if your account is ready...
-              </p>
+              <p className="text-sm text-gray-600">Checking if your account is ready...</p>
             </div>
           ) : (
             <form onSubmit={handleSubmit}>
               <div className="mb-4">
-                <label
-                  className="block text-sm font-medium mb-1"
-                  htmlFor="email"
-                >
+                <label className="block text-sm font-medium mb-1" htmlFor="email">
                   Email
                 </label>
                 <input
@@ -217,16 +231,11 @@ export default function LoginPage() {
                   onChange={handleChange}
                   className="w-full p-2 border border-gray-300 rounded-md"
                 />
-                {errors.email && (
-                  <p className="text-red-500 text-xs mt-1">{errors.email}</p>
-                )}
+                {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
               </div>
 
               <div className="mb-6">
-                <label
-                  className="block text-sm font-medium mb-1"
-                  htmlFor="password"
-                >
+                <label className="block text-sm font-medium mb-1" htmlFor="password">
                   Password
                 </label>
                 <input
@@ -238,16 +247,11 @@ export default function LoginPage() {
                   onChange={handleChange}
                   className="w-full p-2 border border-gray-300 rounded-md"
                 />
-                {errors.password && (
-                  <p className="text-red-500 text-xs mt-1">{errors.password}</p>
-                )}
+                {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
               </div>
 
               <div className="flex justify-end mb-6">
-                <Link
-                  href="#"
-                  className="text-sm text-green-600 hover:underline"
-                >
+                <Link href="#" className="text-sm text-green-600 hover:underline">
                   Forgot password?
                 </Link>
               </div>
@@ -271,5 +275,5 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
-  );
+  )
 }

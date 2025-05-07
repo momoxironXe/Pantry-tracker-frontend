@@ -3,33 +3,32 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ArrowLeft } from "lucide-react"
+import { toast } from "react-hot-toast"
+import { Eye, EyeOff, ArrowRight, CheckCircle } from "lucide-react"
 
 export default function SignupPage() {
   const router = useRouter()
-  const [isLoading, setIsLoading] = useState(false)
-  const [isDataFetching, setIsDataFetching] = useState(false)
-  const [userId, setUserId] = useState<string | null>(null)
-  const [token, setToken] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
     email: "",
     password: "",
+    confirmPassword: "",
     zipCode: "",
-    shoppingStyle: "bulk",
+    shoppingStyle: "value", // Default value
+    phoneNumber: "", // Added for SMS alerts
   })
-  const [errors, setErrors] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    password: "",
-    zipCode: "",
-    shoppingStyle: "",
-    general: "",
-  })
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [step, setStep] = useState(1)
+  const [verificationCode, setVerificationCode] = useState("")
+  const [verificationSent, setVerificationSent] = useState(false)
+  const [verificationError, setVerificationError] = useState("")
+  const [userId, setUserId] = useState<string | null>(null)
+  // For development mode - store the verification code if provided by the API
+  const [devVerificationCode, setDevVerificationCode] = useState<string | null>(null)
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -39,311 +38,517 @@ export default function SignupPage() {
     }))
   }
 
-  const validateForm = () => {
-    let valid = true
-    const newErrors = {
-      firstName: "",
-      lastName: "",
-      email: "",
-      password: "",
-      zipCode: "",
-      shoppingStyle: "",
-      general: "",
-    }
-
-    if (formData.firstName.length < 2) {
-      newErrors.firstName = "First name must be at least 2 characters."
-      valid = false
-    }
-
-    if (formData.lastName.length < 2) {
-      newErrors.lastName = "Last name must be at least 2 characters."
-      valid = false
-    }
-
-    if (!formData.email.includes("@") || !formData.email.includes(".")) {
-      newErrors.email = "Please enter a valid email address."
-      valid = false
-    }
-
-    if (formData.password.length < 8) {
-      newErrors.password = "Password must be at least 8 characters."
-      valid = false
-    }
-
-    if (formData.zipCode.length < 5) {
-      newErrors.zipCode = "Please enter a valid ZIP code."
-      valid = false
-    }
-
-    setErrors(newErrors)
-    return valid
+  const validateStep1 = () => {
+    if (!formData.firstName.trim()) return "First name is required"
+    if (!formData.lastName.trim()) return "Last name is required"
+    if (!formData.email.trim()) return "Email is required"
+    if (!/^\S+@\S+\.\S+$/.test(formData.email)) return "Invalid email format"
+    if (!formData.password) return "Password is required"
+    if (formData.password.length < 8) return "Password must be at least 8 characters"
+    if (formData.password !== formData.confirmPassword) return "Passwords do not match"
+    return null
   }
 
-  // Check data fetch status periodically
-  useEffect(() => {
-    let statusCheckInterval: NodeJS.Timeout | null = null
+  const validateStep2 = () => {
+    if (!formData.zipCode.trim()) return "ZIP code is required"
+    if (!/^\d{5}(-\d{4})?$/.test(formData.zipCode)) return "Invalid ZIP code format"
+    if (!formData.shoppingStyle) return "Please select your shopping style"
+    return null
+  }
 
-    if (isDataFetching && token && userId) {
-      statusCheckInterval = setInterval(async () => {
-        try {
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/data-fetch-status`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          })
-
-          if (!response.ok) {
-            throw new Error("Failed to check status")
-          }
-
-          const data = await response.json()
-
-          if (data.status === "completed") {
-            setIsDataFetching(false)
-            // Redirect to login page with success message
-            router.push("/login?message=Registration%20complete!%20You%20can%20now%20sign%20in.")
-
-            if (statusCheckInterval) {
-              clearInterval(statusCheckInterval)
-            }
-          } else if (data.status === "failed") {
-            setIsDataFetching(false)
-            setErrors((prev) => ({
-              ...prev,
-              general: "Data preparation failed. You can still log in, but some product data may be missing.",
-            }))
-
-            if (statusCheckInterval) {
-              clearInterval(statusCheckInterval)
-            }
-
-            // Still redirect to login after a delay
-            setTimeout(() => {
-              router.push("/login")
-            }, 3000)
-          }
-          // If pending, keep checking
-        } catch (error) {
-          console.error("Error checking status:", error)
-        }
-      }, 5000) // Check every 5 seconds
+  const handleNextStep = () => {
+    const error = validateStep1()
+    if (error) {
+      toast.error(error)
+      return
     }
+    setStep(2)
+  }
 
-    return () => {
-      if (statusCheckInterval) {
-        clearInterval(statusCheckInterval)
-      }
-    }
-  }, [isDataFetching, token, userId, router])
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    if (!validateForm()) {
+  const handleSendVerification = async () => {
+    const error = validateStep2()
+    if (error) {
+      toast.error(error)
       return
     }
 
-    setIsLoading(true)
+    setLoading(true)
     try {
+      // Register the user
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          ...formData,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          password: formData.password,
           zipCode: formData.zipCode,
+          shoppingStyle: formData.shoppingStyle,
+          phoneNumber: formData.phoneNumber || undefined,
         }),
       })
 
-      const result = await response.json()
+      const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(result.message || "Something went wrong")
+        throw new Error(data.message || "Failed to create account")
       }
 
-      // Store token in localStorage
-      localStorage.setItem("token", result.token)
-      localStorage.setItem(
-        "user",
-        JSON.stringify({
-          id: result.user._id,
-          firstName: result.user.firstName,
-          lastName: result.user.lastName,
-          fullName: `${result.user.firstName} ${result.user.lastName}`,
-          email: result.user.email,
-          zipCode: result.user.zipCode,
-          shoppingStyle: result.user.shoppingStyle,
-        }),
-      )
+      // Store token for verification requests
+      if (data.token) {
+        localStorage.setItem("pendingToken", data.token)
+        setUserId(data.user._id)
+      }
 
-      // Set token and userId for status checking
-      setToken(result.token)
-      setUserId(result.user._id)
+      // Check if we're in development mode and have a verification code
+      if (data.verificationCode) {
+        setDevVerificationCode(data.verificationCode)
+        console.log("Development mode: Verification code:", data.verificationCode)
+      }
 
-      // Show data fetching message
-      setIsLoading(false)
-      setIsDataFetching(true)
-
-      // Redirect to a "please wait" page or show a message
-      // We'll show a message in the current page
+      setVerificationSent(true)
+      toast.success("Verification code sent to your email")
+      setStep(3)
     } catch (error) {
-      console.error("Signup error:", error)
-      setErrors((prev) => ({
-        ...prev,
-        general: error instanceof Error ? error.message : "Failed to create account",
-      }))
-      setIsLoading(false)
+      console.error("Registration error:", error)
+      toast.error(error instanceof Error ? error.message : "Failed to create account")
+    } finally {
+      setLoading(false)
     }
   }
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!verificationCode.trim()) {
+      setVerificationError("Please enter the verification code")
+      return
+    }
+
+    setLoading(true)
+    setVerificationError("")
+
+    try {
+      // Verify the email with the code
+      const verifyResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/verify-email`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          code: verificationCode,
+        }),
+      })
+
+      const verifyData = await verifyResponse.json()
+
+      if (!verifyResponse.ok) {
+        throw new Error(verifyData.message || "Invalid verification code")
+      }
+
+      // Get the token from the verification response
+      const token = verifyData.token
+
+      // Store the login token and user data
+      localStorage.setItem("token", token)
+      localStorage.setItem("user", JSON.stringify(verifyData.user))
+
+      toast.success("Account verified! Redirecting to dashboard...")
+      router.push("/dashboard")
+    } catch (error) {
+      console.error("Verification error:", error)
+      setVerificationError(error instanceof Error ? error.message : "Verification failed")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleResendCode = async () => {
+    setLoading(true)
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/resend-verification`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: formData.email,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to resend verification code")
+      }
+
+      // Check if we're in development mode and have a verification code
+      if (data.code) {
+        setDevVerificationCode(data.code)
+        console.log("Development mode: New verification code:", data.code)
+      }
+
+      toast.success("Verification code resent to your email")
+    } catch (error) {
+      console.error("Resend error:", error)
+      toast.error(error instanceof Error ? error.message : "Failed to resend verification code")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Auto-fill verification code in development mode
+  useEffect(() => {
+    if (devVerificationCode && process.env.NODE_ENV === "development") {
+      setVerificationCode(devVerificationCode)
+    }
+  }, [devVerificationCode])
+
   return (
-    <div className="min-h-screen bg-white">
-      <div className="max-w-md mx-auto px-4 py-12">
-        <Link href="/" className="inline-flex items-center mb-8 text-sm text-gray-600 hover:text-gray-900">
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to home
-        </Link>
+    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">Create your account</h2>
+        <p className="mt-2 text-center text-sm text-gray-600">Track grocery prices and save money on your shopping</p>
+      </div>
 
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold">Create an account</h1>
-          <p className="text-sm text-gray-600 mt-2">Enter your information to create a Pantry Tracker account</p>
-        </div>
-
-        {isDataFetching ? (
-          <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-            <div className="text-center">
-              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-green-600 border-r-transparent mb-4"></div>
-              <h2 className="text-lg font-medium text-gray-900 mb-2">Setting up your account</h2>
-              <p className="text-sm text-gray-600 mb-4">
-                We're preparing your personalized shopping data. This may take a minute or two.
-              </p>
-              <p className="text-sm text-gray-500">You'll be redirected to the login page when everything is ready.</p>
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+          {/* Progress Steps */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between">
+              <div className="flex flex-col items-center">
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                    step >= 1 ? "bg-green-500 text-white" : "bg-gray-200 text-gray-600"
+                  }`}
+                >
+                  {step > 1 ? <CheckCircle className="h-5 w-5" /> : "1"}
+                </div>
+                <span className="text-xs mt-1">Account</span>
+              </div>
+              <div className={`h-1 flex-1 mx-2 ${step >= 2 ? "bg-green-500" : "bg-gray-200"}`}></div>
+              <div className="flex flex-col items-center">
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                    step >= 2 ? "bg-green-500 text-white" : "bg-gray-200 text-gray-600"
+                  }`}
+                >
+                  {step > 2 ? <CheckCircle className="h-5 w-5" /> : "2"}
+                </div>
+                <span className="text-xs mt-1">Preferences</span>
+              </div>
+              <div className={`h-1 flex-1 mx-2 ${step >= 3 ? "bg-green-500" : "bg-gray-200"}`}></div>
+              <div className="flex flex-col items-center">
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                    step >= 3 ? "bg-green-500 text-white" : "bg-gray-200 text-gray-600"
+                  }`}
+                >
+                  3
+                </div>
+                <span className="text-xs mt-1">Verify</span>
+              </div>
             </div>
           </div>
-        ) : (
-          <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-            {errors.general && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm">
-                {errors.general}
+
+          <form onSubmit={handleSubmit}>
+            {step === 1 && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
+                      First name
+                    </label>
+                    <div className="mt-1">
+                      <input
+                        id="firstName"
+                        name="firstName"
+                        type="text"
+                        required
+                        value={formData.firstName}
+                        onChange={handleChange}
+                        className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
+                      Last name
+                    </label>
+                    <div className="mt-1">
+                      <input
+                        id="lastName"
+                        name="lastName"
+                        type="text"
+                        required
+                        value={formData.lastName}
+                        onChange={handleChange}
+                        className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                    Email address
+                  </label>
+                  <div className="mt-1">
+                    <input
+                      id="email"
+                      name="email"
+                      type="email"
+                      autoComplete="email"
+                      required
+                      value={formData.email}
+                      onChange={handleChange}
+                      className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                    Password
+                  </label>
+                  <div className="mt-1 relative">
+                    <input
+                      id="password"
+                      name="password"
+                      type={showPassword ? "text" : "password"}
+                      autoComplete="new-password"
+                      required
+                      value={formData.password}
+                      onChange={handleChange}
+                      className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                    />
+                    <button
+                      type="button"
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-5 w-5 text-gray-400" />
+                      ) : (
+                        <Eye className="h-5 w-5 text-gray-400" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+                    Confirm password
+                  </label>
+                  <div className="mt-1 relative">
+                    <input
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      type={showConfirmPassword ? "text" : "password"}
+                      autoComplete="new-password"
+                      required
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
+                      className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                    />
+                    <button
+                      type="button"
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff className="h-5 w-5 text-gray-400" />
+                      ) : (
+                        <Eye className="h-5 w-5 text-gray-400" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <button
+                    type="button"
+                    onClick={handleNextStep}
+                    className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                  >
+                    Next <ArrowRight className="ml-2 h-4 w-4" />
+                  </button>
+                </div>
               </div>
             )}
 
-            <form onSubmit={handleSubmit}>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1" htmlFor="firstName">
-                  First Name
-                </label>
-                <input
-                  id="firstName"
-                  name="firstName"
-                  type="text"
-                  placeholder="John"
-                  value={formData.firstName}
-                  onChange={handleChange}
-                  className="w-full p-2 border border-gray-300 rounded-md"
-                />
-                {errors.firstName && <p className="text-red-500 text-xs mt-1">{errors.firstName}</p>}
-              </div>
+            {step === 2 && (
+              <div className="space-y-6">
+                <div>
+                  <label htmlFor="zipCode" className="block text-sm font-medium text-gray-700">
+                    ZIP Code
+                  </label>
+                  <div className="mt-1">
+                    <input
+                      id="zipCode"
+                      name="zipCode"
+                      type="text"
+                      required
+                      value={formData.zipCode}
+                      onChange={handleChange}
+                      className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                    />
+                  </div>
+                </div>
 
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1" htmlFor="lastName">
-                  Last Name
-                </label>
-                <input
-                  id="lastName"
-                  name="lastName"
-                  type="text"
-                  placeholder="Doe"
-                  value={formData.lastName}
-                  onChange={handleChange}
-                  className="w-full p-2 border border-gray-300 rounded-md"
-                />
-                {errors.lastName && <p className="text-red-500 text-xs mt-1">{errors.lastName}</p>}
-              </div>
+                <div>
+                  <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700">
+                    Phone Number (for price alerts)
+                  </label>
+                  <div className="mt-1">
+                    <input
+                      id="phoneNumber"
+                      name="phoneNumber"
+                      type="tel"
+                      placeholder="Optional - for SMS price alerts"
+                      value={formData.phoneNumber}
+                      onChange={handleChange}
+                      className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                    />
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500">
+                    We'll only send alerts for items you choose to track. Standard rates may apply.
+                  </p>
+                </div>
 
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1" htmlFor="email">
-                  Email
-                </label>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="example@email.com"
-                  value={formData.email}
-                  onChange={handleChange}
-                  className="w-full p-2 border border-gray-300 rounded-md"
-                />
-                {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
-              </div>
+                <div>
+                  <label htmlFor="shoppingStyle" className="block text-sm font-medium text-gray-700">
+                    Your Shopping Style
+                  </label>
+                  <div className="mt-1">
+                    <select
+                      id="shoppingStyle"
+                      name="shoppingStyle"
+                      required
+                      value={formData.shoppingStyle}
+                      onChange={handleChange}
+                      className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                    >
+                      <option value="budget">Budget Shopper</option>
+                      <option value="prepper">Prepper/Pantry Stocker</option>
+                      <option value="seasonal">Seasonal Cook</option>
+                      <option value="homesteader">Homesteader/Gardener</option>
+                      <option value="clean">Clean Ingredient Shopper</option>
+                      <option value="bulk">Bulk Buy Shopper</option>
+                      <option value="value">Value Shopper</option>
+                    </select>
+                  </div>
+                  <p className="mt-2 text-sm text-gray-500">
+                    This helps us personalize price alerts and recommendations for you.
+                  </p>
+                </div>
 
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1" htmlFor="password">
-                  Password
-                </label>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={formData.password}
-                  onChange={handleChange}
-                  className="w-full p-2 border border-gray-300 rounded-md"
-                />
-                {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
+                <div className="flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={() => setStep(1)}
+                    className="flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSendVerification}
+                    className="flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                  >
+                    Continue <ArrowRight className="ml-2 h-4 w-4" />
+                  </button>
+                </div>
               </div>
+            )}
 
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1" htmlFor="zipCode">
-                  ZIP Code
-                </label>
-                <input
-                  id="zipCode"
-                  name="zipCode"
-                  type="text"
-                  placeholder="10001"
-                  value={formData.zipCode}
-                  onChange={handleChange}
-                  className="w-full p-2 border border-gray-300 rounded-md"
-                />
-                {errors.zipCode && <p className="text-red-500 text-xs mt-1">{errors.zipCode}</p>}
+            {step === 3 && (
+              <div className="space-y-6">
+                <div>
+                  <label htmlFor="verificationCode" className="block text-sm font-medium text-gray-700">
+                    Verification Code
+                  </label>
+                  <div className="mt-1">
+                    <input
+                      id="verificationCode"
+                      name="verificationCode"
+                      type="text"
+                      required
+                      value={verificationCode}
+                      onChange={(e) => setVerificationCode(e.target.value)}
+                      className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                      placeholder="Enter 6-digit code"
+                    />
+                  </div>
+                  {verificationError && <p className="mt-2 text-sm text-red-600">{verificationError}</p>}
+                  <p className="mt-2 text-sm text-gray-500">
+                    We've sent a verification code to your email address. Please enter it here to complete your
+                    registration.
+                  </p>
+
+                  {devVerificationCode && process.env.NODE_ENV === "development" && (
+                    <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-md">
+                      <p className="text-sm text-yellow-800">
+                        <strong>Development Mode:</strong> Verification code: {devVerificationCode}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={() => setStep(2)}
+                    className="flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                  >
+                    {loading ? "Creating account..." : "Complete Registration"}
+                  </button>
+                </div>
+
+                <div className="text-center mt-4">
+                  <button
+                    type="button"
+                    onClick={handleResendCode}
+                    disabled={loading}
+                    className="text-sm text-green-600 hover:text-green-500"
+                  >
+                    Resend verification code
+                  </button>
+                </div>
               </div>
+            )}
+          </form>
 
-              <div className="mb-6">
-                <label className="block text-sm font-medium mb-1" htmlFor="shoppingStyle">
-                  Shopping Style
-                </label>
-                <select
-                  id="shoppingStyle"
-                  name="shoppingStyle"
-                  value={formData.shoppingStyle}
-                  onChange={handleChange}
-                  className="w-full p-2 border border-gray-300 rounded-md"
-                >
-                  <option value="bulk">Bulk Buy Shopper</option>
-                  <option value="value">Value Shopper</option>
-                  <option value="health">Health Conscious</option>
-                </select>
+          <div className="mt-6">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300"></div>
               </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">Already have an account?</span>
+              </div>
+            </div>
 
+            <div className="mt-6">
               <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
+                onClick={() => router.push("/login")}
+                className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
               >
-                {isLoading ? "Creating account..." : "Sign Up"}
+                Sign in
               </button>
-            </form>
+            </div>
           </div>
-        )}
-
-        <div className="text-center mt-6 text-sm">
-          Already have an account?{" "}
-          <Link href="/login" className="text-green-600 hover:underline">
-            Sign in
-          </Link>
         </div>
       </div>
     </div>

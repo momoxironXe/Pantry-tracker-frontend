@@ -30,6 +30,10 @@ import { motion, AnimatePresence } from "framer-motion"
 import GoogleMap from "@/components/google-map"
 import { toast } from "react-hot-toast"
 
+import BulkBuyCalculator from "@/components/bulk-buy-calculator"
+import RecipePriceTracker from "@/components/recipe-price-tracker"
+import PriceTrendChart from "@/components/price-trend-chart"
+
 // Type definitions remain the same...
 type UserType = {
   _id: string
@@ -647,6 +651,16 @@ export default function DashboardPage() {
         return "Value Shopper"
       case "health":
         return "Health Conscious"
+      case "budget":
+        return "Budget Shopper"
+      case "prepper":
+        return "Prepper/Pantry Stocker"
+      case "seasonal":
+        return "Seasonal Cook"
+      case "homesteader":
+        return "Homesteader/Gardener"
+      case "clean":
+        return "Clean Ingredient Shopper"
       default:
         return style
     }
@@ -784,6 +798,24 @@ export default function DashboardPage() {
               Search Results
             </button>
             <button
+              onClick={() => setActiveTab("recipes")}
+              className={`w-full text-left block px-3 py-2 rounded-md text-base font-medium ${activeTab === "recipes" ? "text-gray-900 bg-gray-50" : "text-gray-700 hover:bg-gray-50"}`}
+            >
+              My Recipes
+            </button>
+            <button
+              onClick={() => setActiveTab("bulkBuy")}
+              className={`w-full text-left block px-3 py-2 rounded-md text-base font-medium ${activeTab === "bulkBuy" ? "text-gray-900 bg-gray-50" : "text-gray-700 hover:bg-gray-50"}`}
+            >
+              Bulk Buy Calculator
+            </button>
+            <button
+              onClick={() => setActiveTab("myPantry")}
+              className={`w-full text-left block px-3 py-2 rounded-md text-base font-medium ${activeTab === "myPantry" ? "text-gray-900 bg-gray-50" : "text-gray-700 hover:bg-gray-50"}`}
+            >
+              My Pantry
+            </button>
+            <button
               onClick={() => setIsSettingsOpen(!isSettingsOpen)}
               className="w-full text-left block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50"
             >
@@ -857,6 +889,11 @@ export default function DashboardPage() {
                             <option value="bulk">Bulk Buy Shopper</option>
                             <option value="value">Value Shopper</option>
                             <option value="health">Health Conscious</option>
+                            <option value="budget">Budget Shopper</option>
+                            <option value="prepper">Prepper/Pantry Stocker</option>
+                            <option value="seasonal">Seasonal Cook</option>
+                            <option value="homesteader">Homesteader/Gardener</option>
+                            <option value="clean">Clean Ingredient Shopper</option>
                           </select>
                         </div>
                         <div>
@@ -942,6 +979,36 @@ export default function DashboardPage() {
                 Search Results
               </button>
             )}
+            <button
+              onClick={() => setActiveTab("recipes")}
+              className={`px-1 py-4 text-sm font-medium border-b-2 ${
+                activeTab === "recipes"
+                  ? "border-green-500 text-green-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              My Recipes
+            </button>
+            <button
+              onClick={() => setActiveTab("bulkBuy")}
+              className={`px-1 py-4 text-sm font-medium border-b-2 ${
+                activeTab === "bulkBuy"
+                  ? "border-green-500 text-green-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              Bulk Buy Calculator
+            </button>
+            <button
+              onClick={() => setActiveTab("myPantry")}
+              className={`px-1 py-4 text-sm font-medium border-b-2 ${
+                activeTab === "myPantry"
+                  ? "border-green-500 text-green-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              My Pantry
+            </button>
           </div>
         </div>
       </div>
@@ -1239,6 +1306,37 @@ export default function DashboardPage() {
                     )}
                   </motion.div>
 
+                  {/* Price Trends */}
+                  <motion.div
+                    className="bg-white rounded-lg shadow-md p-6 mb-8"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.45 }}
+                  >
+                    <div className="flex items-center justify-between mb-6">
+                      <h2 className="text-lg font-medium text-gray-900 flex items-center">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="20"
+                          height="20"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="h-5 w-5 mr-2 text-green-600"
+                        >
+                          <path d="M3 3v18h18" />
+                          <path d="m19 9-5 5-4-4-3 3" />
+                        </svg>
+                        Price Trends Over Time
+                      </h2>
+                    </div>
+
+                    {/* <PriceTrendChart /> */}
+                  </motion.div>
+
                   {/* Grocery News */}
                   <motion.div
                     className="bg-white rounded-lg shadow-md p-6 mb-8"
@@ -1389,6 +1487,190 @@ export default function DashboardPage() {
                     </p>
                   </div>
                 )}
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        )}
+
+        {/* Recipe Price Tracker Tab */}
+        {activeTab === "recipes" && (
+          <AnimatePresence mode="wait">
+            <motion.div
+              key="recipes"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-lg font-medium text-gray-900 flex items-center">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-5 w-5 mr-2 text-green-600"
+                    >
+                      <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5" />
+                      <path d="M9 18h6" />
+                      <path d="M12 22v-4" />
+                    </svg>
+                    My Recipe Price Tracker
+                  </h2>
+                </div>
+                <RecipePriceTracker />
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        )}
+
+        {/* Bulk Buy Calculator Tab */}
+        {activeTab === "bulkBuy" && (
+          <AnimatePresence mode="wait">
+            <motion.div
+              key="bulkBuy"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-lg font-medium text-gray-900 flex items-center">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-5 w-5 mr-2 text-green-600"
+                    >
+                      <path d="M3 3v18h18" />
+                      <path d="M18 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" />
+                      <path d="M9 17a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" />
+                    </svg>
+                    Bulk Buy Calculator
+                  </h2>
+                </div>
+                <BulkBuyCalculator />
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        )}
+
+        {/* My Pantry Tab */}
+        {activeTab === "myPantry" && (
+          <AnimatePresence mode="wait">
+            <motion.div
+              key="myPantry"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-lg font-medium text-gray-900 flex items-center">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-5 w-5 mr-2 text-green-600"
+                    >
+                      <path d="M20 7h-3a2 2 0 0 1-2-2V2" />
+                      <path d="M9 2v3a2 2 0 0 1-2 2H4" />
+                      <path d="M12 22v-7" />
+                      <path d="M5 8v14h14V8" />
+                      <path d="M5 2v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V2" />
+                    </svg>
+                    My Pantry Items
+                  </h2>
+                </div>
+
+                {/* My Pantry Content */}
+                <div className="space-y-4">
+                  {/* This would be replaced with actual pantry items */}
+                  <div className="flex items-center justify-between p-4 border rounded-lg">
+                    <div>
+                      <h3 className="font-medium">Organic Brown Rice</h3>
+                      <p className="text-sm text-gray-500">2 lb bag</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-medium">$3.99</p>
+                      <p className="text-xs text-green-600">↓ 12% from last month</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 border rounded-lg">
+                    <div>
+                      <h3 className="font-medium">Canned Black Beans</h3>
+                      <p className="text-sm text-gray-500">15 oz can</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-medium">$0.89</p>
+                      <p className="text-xs text-red-600">↑ 5% from last month</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 border rounded-lg">
+                    <div>
+                      <h3 className="font-medium">Olive Oil, Extra Virgin</h3>
+                      <p className="text-sm text-gray-500">16.9 fl oz</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-medium">$8.49</p>
+                      <p className="text-xs text-green-600">↓ 8% from last month</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-6">
+                    <button className="w-full py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors">
+                      Add New Pantry Item
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Price Trends for My Pantry */}
+              <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-lg font-medium text-gray-900 flex items-center">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-5 w-5 mr-2 text-green-600"
+                    >
+                      <path d="M3 3v18h18" />
+                      <path d="m19 9-5 5-4-4-3 3" />
+                    </svg>
+                    My Pantry Price Trends
+                  </h2>
+                </div>
+
+                {/* <PriceTrendChart userPantryOnly={true} /> */}
               </div>
             </motion.div>
           </AnimatePresence>
