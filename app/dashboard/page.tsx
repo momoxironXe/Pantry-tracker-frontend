@@ -1336,43 +1336,6 @@ export default function DashboardPage() {
                             <option value="clean">Clean Ingredient Shopper</option>
                           </select>
                         </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">Email Notifications</label>
-                          <div className="mt-2">
-                            <div className="flex items-center">
-                              <input
-                                id="weekly-digest"
-                                name="weekly-digest"
-                                type="checkbox"
-                                className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-                                defaultChecked
-                              />
-                              <label htmlFor="weekly-digest" className="ml-2 block text-sm text-gray-700">
-                                Weekly price digest
-                              </label>
-                            </div>
-                            <div className="flex items-center mt-2">
-                              <input
-                                id="price-alerts"
-                                name="price-alerts"
-                                type="checkbox"
-                                className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-                                defaultChecked
-                              />
-                              <label htmlFor="price-alerts" className="ml-2 block text-sm text-gray-700">
-                                Price drop alerts
-                              </label>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="pt-5">
-                          <button
-                            type="button"
-                            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                          >
-                            Save Settings
-                          </button>
-                        </div>
                       </div>
                     </div>
                   </div>
