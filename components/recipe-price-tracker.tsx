@@ -1,193 +1,217 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { ChevronDown, ChevronUp, Plus, Trash2, Save, Edit, AlertCircle } from "lucide-react"
+import { useState, useEffect } from "react";
+import {
+  ChevronDown,
+  ChevronUp,
+  Plus,
+  Trash2,
+  Save,
+  Edit,
+  AlertCircle,
+} from "lucide-react";
 
 type Ingredient = {
-  id: string
-  name: string
-  quantity: number
-  unit: string
-  currentPrice: number
-  previousPrice: number | null
-}
+  id: string;
+  name: string;
+  quantity: number;
+  unit: string;
+  currentPrice: number;
+  previousPrice: number | null;
+};
 
 type Recipe = {
-  id: string
-  name: string
-  ingredients: Ingredient[]
-  totalCurrentPrice: number
-  totalPreviousPrice: number | null
-  priceChange: number | null
-  lastUpdated: string
-}
+  id: string;
+  name: string;
+  ingredients: Ingredient[];
+  totalCurrentPrice: number;
+  totalPreviousPrice: number | null;
+  priceChange: number | null;
+  lastUpdated: string;
+};
 
 export default function RecipePriceTracker() {
-  const [recipes, setRecipes] = useState<Recipe[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState("")
-  const [expandedRecipe, setExpandedRecipe] = useState<string | null>(null)
-  const [isAddingRecipe, setIsAddingRecipe] = useState(false)
-  const [isEditingRecipe, setIsEditingRecipe] = useState<string | null>(null)
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [expandedRecipe, setExpandedRecipe] = useState<string | null>(null);
+  const [isAddingRecipe, setIsAddingRecipe] = useState(false);
+  const [isEditingRecipe, setIsEditingRecipe] = useState<string | null>(null);
 
   // New recipe form state
-  const [newRecipeName, setNewRecipeName] = useState("")
-  const [newIngredients, setNewIngredients] = useState<Omit<Ingredient, "id" | "currentPrice" | "previousPrice">[]>([
-    { name: "", quantity: 1, unit: "item" },
-  ])
+  const [newRecipeName, setNewRecipeName] = useState("");
+  const [newIngredients, setNewIngredients] = useState<
+    Omit<Ingredient, "id" | "currentPrice" | "previousPrice">[]
+  >([{ name: "", quantity: 1, unit: "item" }]);
 
   useEffect(() => {
-    fetchRecipes()
-  }, [])
+    fetchRecipes();
+  }, []);
 
   const fetchRecipes = async () => {
     try {
-      setLoading(true)
-      const token = localStorage.getItem("token")
+      setLoading(true);
+      const token = localStorage.getItem("token");
 
       if (!token) {
-        throw new Error("Authentication required")
+        throw new Error("Authentication required");
       }
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/recipes`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/recipes`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       if (!response.ok) {
-        throw new Error("Failed to fetch recipes")
+        throw new Error("Failed to fetch recipes");
       }
 
-      const data = await response.json()
-      setRecipes(data.recipes || [])
+      const data = await response.json();
+      setRecipes(data.recipes || []);
     } catch (err) {
-      console.error("Error fetching recipes:", err)
-      setError(err instanceof Error ? err.message : "Failed to load recipes")
+      console.error("Error fetching recipes:", err);
+      setError(err instanceof Error ? err.message : "Failed to load recipes");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const toggleRecipeExpansion = (recipeId: string) => {
-    setExpandedRecipe(expandedRecipe === recipeId ? null : recipeId)
-  }
+    setExpandedRecipe(expandedRecipe === recipeId ? null : recipeId);
+  };
 
   const handleAddIngredient = () => {
-    setNewIngredients([...newIngredients, { name: "", quantity: 1, unit: "item" }])
-  }
+    setNewIngredients([
+      ...newIngredients,
+      { name: "", quantity: 1, unit: "item" },
+    ]);
+  };
 
   const handleRemoveIngredient = (index: number) => {
-    const updatedIngredients = [...newIngredients]
-    updatedIngredients.splice(index, 1)
-    setNewIngredients(updatedIngredients)
-  }
+    const updatedIngredients = [...newIngredients];
+    updatedIngredients.splice(index, 1);
+    setNewIngredients(updatedIngredients);
+  };
 
-  const handleIngredientChange = (index: number, field: string, value: string | number) => {
-    const updatedIngredients = [...newIngredients]
+  const handleIngredientChange = (
+    index: number,
+    field: string,
+    value: string | number
+  ) => {
+    const updatedIngredients = [...newIngredients];
     updatedIngredients[index] = {
       ...updatedIngredients[index],
       [field]: value,
-    }
-    setNewIngredients(updatedIngredients)
-  }
+    };
+    setNewIngredients(updatedIngredients);
+  };
 
   const handleSubmitRecipe = async () => {
     try {
       if (!newRecipeName.trim()) {
-        setError("Recipe name is required")
-        return
+        setError("Recipe name is required");
+        return;
       }
 
       if (newIngredients.some((ing) => !ing.name.trim())) {
-        setError("All ingredients must have a name")
-        return
+        setError("All ingredients must have a name");
+        return;
       }
 
-      setLoading(true)
-      const token = localStorage.getItem("token")
+      setLoading(true);
+      const token = localStorage.getItem("token");
 
       if (!token) {
-        throw new Error("Authentication required")
+        throw new Error("Authentication required");
       }
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/recipes`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          name: newRecipeName,
-          ingredients: newIngredients,
-        }),
-      })
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/recipes`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            name: newRecipeName,
+            ingredients: newIngredients,
+          }),
+        }
+      );
 
       if (!response.ok) {
-        throw new Error("Failed to save recipe")
+        throw new Error("Failed to save recipe");
       }
 
       // Reset form
-      setNewRecipeName("")
-      setNewIngredients([{ name: "", quantity: 1, unit: "item" }])
-      setIsAddingRecipe(false)
+      setNewRecipeName("");
+      setNewIngredients([{ name: "", quantity: 1, unit: "item" }]);
+      setIsAddingRecipe(false);
 
       // Refresh recipes
-      fetchRecipes()
+      fetchRecipes();
     } catch (err) {
-      console.error("Error saving recipe:", err)
-      setError(err instanceof Error ? err.message : "Failed to save recipe")
+      console.error("Error saving recipe:", err);
+      setError(err instanceof Error ? err.message : "Failed to save recipe");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleDeleteRecipe = async (recipeId: string) => {
     if (!confirm("Are you sure you want to delete this recipe?")) {
-      return
+      return;
     }
 
     try {
-      setLoading(true)
-      const token = localStorage.getItem("token")
+      setLoading(true);
+      const token = localStorage.getItem("token");
 
       if (!token) {
-        throw new Error("Authentication required")
+        throw new Error("Authentication required");
       }
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/recipes/${recipeId}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/recipes/${recipeId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       if (!response.ok) {
-        throw new Error("Failed to delete recipe")
+        throw new Error("Failed to delete recipe");
       }
 
       // Refresh recipes
-      fetchRecipes()
+      fetchRecipes();
     } catch (err) {
-      console.error("Error deleting recipe:", err)
-      setError(err instanceof Error ? err.message : "Failed to delete recipe")
+      console.error("Error deleting recipe:", err);
+      setError(err instanceof Error ? err.message : "Failed to delete recipe");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const formatPriceChange = (change: number | null) => {
-    if (change === null) return "N/A"
+    if (change === null) return "N/A";
 
-    const formattedChange = Math.abs(change).toFixed(1)
+    const formattedChange = Math.abs(change).toFixed(1);
     if (change > 0) {
-      return <span className="text-red-600">↑ {formattedChange}%</span>
+      return <span className="text-red-600">↑ {formattedChange}%</span>;
     } else if (change < 0) {
-      return <span className="text-green-600">↓ {formattedChange}%</span>
+      return <span className="text-green-600">↓ {formattedChange}%</span>;
     } else {
-      return <span className="text-gray-600">0%</span>
+      return <span className="text-gray-600">0%</span>;
     }
-  }
+  };
 
   if (loading && recipes.length === 0) {
     return (
@@ -197,7 +221,7 @@ export default function RecipePriceTracker() {
           <p className="mt-4">Loading your recipes...</p>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -227,7 +251,9 @@ export default function RecipePriceTracker() {
             <path d="M9 18h6" />
             <path d="M12 22v-4" />
           </svg>
-          <p className="mt-4 text-gray-500">You haven't added any recipes yet.</p>
+          <p className="mt-4 text-gray-500">
+            You haven't added any recipes yet.
+          </p>
           <button
             onClick={() => setIsAddingRecipe(true)}
             className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
@@ -256,7 +282,10 @@ export default function RecipePriceTracker() {
 
               <div className="space-y-4">
                 <div>
-                  <label htmlFor="recipeName" className="block text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="recipeName"
+                    className="block text-sm font-medium text-gray-700"
+                  >
                     Recipe Name
                   </label>
                   <input
@@ -270,14 +299,21 @@ export default function RecipePriceTracker() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Ingredients</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Ingredients
+                  </label>
 
                   {newIngredients.map((ingredient, index) => (
-                    <div key={index} className="flex items-center space-x-2 mb-2">
+                    <div
+                      key={index}
+                      className="flex items-center space-x-2 mb-2"
+                    >
                       <input
                         type="text"
                         value={ingredient.name}
-                        onChange={(e) => handleIngredientChange(index, "name", e.target.value)}
+                        onChange={(e) =>
+                          handleIngredientChange(index, "name", e.target.value)
+                        }
                         className="flex-1 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
                         placeholder="Ingredient name"
                       />
@@ -285,7 +321,13 @@ export default function RecipePriceTracker() {
                       <input
                         type="number"
                         value={ingredient.quantity}
-                        onChange={(e) => handleIngredientChange(index, "quantity", Number.parseFloat(e.target.value))}
+                        onChange={(e) =>
+                          handleIngredientChange(
+                            index,
+                            "quantity",
+                            Number.parseFloat(e.target.value)
+                          )
+                        }
                         className="w-20 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
                         min="0.1"
                         step="0.1"
@@ -293,7 +335,9 @@ export default function RecipePriceTracker() {
 
                       <select
                         value={ingredient.unit}
-                        onChange={(e) => handleIngredientChange(index, "unit", e.target.value)}
+                        onChange={(e) =>
+                          handleIngredientChange(index, "unit", e.target.value)
+                        }
                         className="w-24 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
                       >
                         <option value="item">item</option>
@@ -332,10 +376,12 @@ export default function RecipePriceTracker() {
                   <button
                     type="button"
                     onClick={() => {
-                      setIsAddingRecipe(false)
-                      setNewRecipeName("")
-                      setNewIngredients([{ name: "", quantity: 1, unit: "item" }])
-                      setError("")
+                      setIsAddingRecipe(false);
+                      setNewRecipeName("");
+                      setNewIngredients([
+                        { name: "", quantity: 1, unit: "item" },
+                      ]);
+                      setError("");
                     }}
                     className="py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
                   >
@@ -357,8 +403,11 @@ export default function RecipePriceTracker() {
           )}
 
           <div className="space-y-4">
-            {recipes.map((recipe) => (
-              <div key={recipe.id} className="border rounded-lg overflow-hidden">
+            {recipes.map((recipe, index) => (
+              <div
+                key={recipe.id || `recipe-${index}`}
+                className="border rounded-lg overflow-hidden"
+              >
                 <div
                   className="flex items-center justify-between p-4 bg-white cursor-pointer"
                   onClick={() => toggleRecipeExpansion(recipe.id)}
@@ -374,7 +423,9 @@ export default function RecipePriceTracker() {
                   <div className="flex items-center space-x-4">
                     <div className="text-right">
                       {/* <p className="font-medium">${recipe.totalCurrentPrice.toFixed(2)}</p> */}
-                      <p className="text-xs">{formatPriceChange(recipe.priceChange)} from last month</p>
+                      <p className="text-xs">
+                        {formatPriceChange(recipe.priceChange)} from last month
+                      </p>
                     </div>
 
                     {expandedRecipe === recipe.id ? (
@@ -420,13 +471,21 @@ export default function RecipePriceTracker() {
                               {ingredient.previousPrice !== null ? (
                                 <span
                                   className={
-                                    ingredient.currentPrice > ingredient.previousPrice
+                                    ingredient.currentPrice >
+                                    ingredient.previousPrice
                                       ? "text-red-600"
                                       : "text-green-600"
                                   }
                                 >
-                                  {ingredient.currentPrice > ingredient.previousPrice ? "↑" : "↓"}$
-                                  {Math.abs(ingredient.currentPrice - ingredient.previousPrice).toFixed(2)}
+                                  {ingredient.currentPrice >
+                                  ingredient.previousPrice
+                                    ? "↑"
+                                    : "↓"}
+                                  $
+                                  {Math.abs(
+                                    ingredient.currentPrice -
+                                      ingredient.previousPrice
+                                  ).toFixed(2)}
                                 </span>
                               ) : (
                                 <span className="text-gray-400">N/A</span>
@@ -437,7 +496,10 @@ export default function RecipePriceTracker() {
                       </tbody>
                       <tfoot>
                         <tr className="bg-gray-50">
-                          <td colSpan={2} className="px-3 py-2 text-sm font-medium text-gray-900">
+                          <td
+                            colSpan={2}
+                            className="px-3 py-2 text-sm font-medium text-gray-900"
+                          >
                             Total
                           </td>
                           <td className="px-3 py-2 text-sm font-medium text-gray-900 text-right">
@@ -447,13 +509,21 @@ export default function RecipePriceTracker() {
                             {recipe.totalPreviousPrice !== null ? (
                               <span
                                 className={
-                                  recipe.totalCurrentPrice > recipe.totalPreviousPrice
+                                  recipe.totalCurrentPrice >
+                                  recipe.totalPreviousPrice
                                     ? "text-red-600"
                                     : "text-green-600"
                                 }
                               >
-                                {recipe.totalCurrentPrice > recipe.totalPreviousPrice ? "↑" : "↓"}$
-                                {Math.abs(recipe.totalCurrentPrice - recipe.totalPreviousPrice).toFixed(2)}
+                                {recipe.totalCurrentPrice >
+                                recipe.totalPreviousPrice
+                                  ? "↑"
+                                  : "↓"}
+                                $
+                                {Math.abs(
+                                  recipe.totalCurrentPrice -
+                                    recipe.totalPreviousPrice
+                                ).toFixed(2)}
                               </span>
                             ) : (
                               <span className="text-gray-400">N/A</span>
@@ -488,5 +558,5 @@ export default function RecipePriceTracker() {
         </>
       )}
     </div>
-  )
+  );
 }

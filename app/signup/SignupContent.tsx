@@ -291,7 +291,7 @@ export default function SignupContent() {
             </div>
 
             <p className="text-sm text-gray-500">
-              We're preparing your personalized shopping experience. This may take a minute...
+              We're preparing your personalized shopping experience. This may take several minutes...
             </p>
           </div>
         </div>

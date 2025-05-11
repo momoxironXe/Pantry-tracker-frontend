@@ -29,10 +29,9 @@ import {
 import { motion, AnimatePresence } from "framer-motion"
 import GoogleMap from "@/components/google-map"
 import { toast } from "react-hot-toast"
-
+import PriceTrendChart from "@/components/price-trend-chart"
 import BulkBuyCalculator from "@/components/bulk-buy-calculator"
 import RecipePriceTracker from "@/components/recipe-price-tracker"
-import PriceTrendChart from "@/components/price-trend-chart"
 
 // Type definitions remain the same...
 type UserType = {
@@ -114,6 +113,52 @@ type DashboardDataType = {
   produceItems: ProductType[]
   buyAlerts: ProductType[]
   newsHighlights: NewsItemType[]
+}
+
+type PricePoint = {
+  date: string
+  price: number
+  storeName?: string
+}
+
+type PriceHistory = {
+  weekly: PricePoint[]
+  monthly: PricePoint[]
+  threeMonth: PricePoint[]
+}
+
+type PriceChange = {
+  weekly: number
+  monthly: number
+  threeMonth: number
+}
+
+type PriceTrendType = {
+  id: string
+  name: string
+  currentPrice: number
+  priceHistory: PriceHistory
+  priceChange: PriceChange
+  lowestPrice: number
+  highestPrice: number
+  storeName: string
+  seasonalLow?: boolean
+  buyRecommendation?: boolean
+  buyRecommendationReason?: string
+}
+
+type PantryItemWithTrends = {
+  id: string
+  name: string
+  quantity: number
+  monthlyUsage: number
+  addedAt: string
+  currentPrice: number
+  priceHistory: PriceHistory
+  priceChange: PriceChange
+  lowestPrice: number
+  highestPrice: number
+  storeName: string
 }
 
 // Product Card Component for consistent styling
@@ -221,6 +266,238 @@ const ProductCard = ({
   )
 }
 
+// Add New Pantry Item Modal Component
+const AddPantryItemModal = ({
+  isOpen,
+  onClose,
+  onAdd,
+}: {
+  isOpen: boolean
+  onClose: () => void
+  onAdd: (item: { name: string; category: string; type: string; size: string; unit: string; quantity: number }) => void
+}) => {
+  const [name, setName] = useState("")
+  const [category, setCategory] = useState("Pantry")
+  const [type, setType] = useState("Store Brand")
+  const [size, setSize] = useState("")
+  const [unit, setUnit] = useState("each")
+  const [quantity, setQuantity] = useState(1)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsSubmitting(true)
+
+    // Validate form
+    if (!name.trim()) {
+      toast.error("Please enter a name for the item")
+      setIsSubmitting(false)
+      return
+    }
+
+    // Submit form
+    onAdd({
+      name,
+      category,
+      type,
+      size,
+      unit,
+      quantity,
+    })
+
+    // Reset form (this will happen after onAdd completes)
+    setName("")
+    setCategory("Pantry")
+    setType("Store Brand")
+    setSize("")
+    setUnit("each")
+    setQuantity(1)
+  }
+
+  if (!isOpen) return null
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <div className="fixed inset-0 transition-opacity" aria-hidden="true">
+          <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
+        </div>
+
+        <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">
+          &#8203;
+        </span>
+
+        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+          <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+            <div className="sm:flex sm:items-start">
+              <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                <h3 className="text-lg leading-6 font-medium text-gray-900">Add New Pantry Item</h3>
+                <div className="mt-4">
+                  <form onSubmit={handleSubmit}>
+                    <div className="mb-4">
+                      <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                        Item Name *
+                      </label>
+                      <input
+                        type="text"
+                        id="name"
+                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        required
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <label htmlFor="category" className="block text-sm font-medium text-gray-700">
+                          Category
+                        </label>
+                        <select
+                          id="category"
+                          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                          value={category}
+                          onChange={(e) => setCategory(e.target.value)}
+                        >
+                          <option value="Pantry">Pantry</option>
+                          <option value="Produce">Produce</option>
+                          <option value="Dairy">Dairy</option>
+                          <option value="Meat">Meat</option>
+                          <option value="Frozen">Frozen</option>
+                          <option value="Bakery">Bakery</option>
+                          <option value="Beverages">Beverages</option>
+                          <option value="Snacks">Snacks</option>
+                          <option value="Household">Household</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label htmlFor="type" className="block text-sm font-medium text-gray-700">
+                          Type
+                        </label>
+                        <select
+                          id="type"
+                          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                          value={type}
+                          onChange={(e) => setType(e.target.value)}
+                        >
+                          <option value="Store Brand">Store Brand</option>
+                          <option value="Name Brand">Name Brand</option>
+                          <option value="Organic">Organic</option>
+                          <option value="Bulk">Bulk</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <label htmlFor="size" className="block text-sm font-medium text-gray-700">
+                          Size
+                        </label>
+                        <input
+                          type="text"
+                          id="size"
+                          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                          value={size}
+                          onChange={(e) => setSize(e.target.value)}
+                          placeholder="e.g. 16 oz"
+                        />
+                      </div>
+
+                      <div>
+                        <label htmlFor="unit" className="block text-sm font-medium text-gray-700">
+                          Unit
+                        </label>
+                        <select
+                          id="unit"
+                          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                          value={unit}
+                          onChange={(e) => setUnit(e.target.value)}
+                        >
+                          <option value="each">each</option>
+                          <option value="bag">bag</option>
+                          <option value="box">box</option>
+                          <option value="can">can</option>
+                          <option value="bottle">bottle</option>
+                          <option value="jar">jar</option>
+                          <option value="package">package</option>
+                          <option value="container">container</option>
+                          <option value="bunch">bunch</option>
+                          <option value="lb">lb</option>
+                          <option value="oz">oz</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="mb-4">
+                      <label htmlFor="quantity" className="block text-sm font-medium text-gray-700">
+                        Quantity
+                      </label>
+                      <input
+                        type="number"
+                        id="quantity"
+                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                        value={quantity}
+                        onChange={(e) => setQuantity(Number(e.target.value))}
+                        min="1"
+                      />
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+            <button
+              type="button"
+              className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:ml-3 sm:w-auto sm:text-sm"
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <svg
+                    className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  Adding...
+                </>
+              ) : (
+                "Add Item"
+              )}
+            </button>
+            <button
+              type="button"
+              className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+              onClick={onClose}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function DashboardPage() {
   // State definitions remain the same...
   const router = useRouter()
@@ -241,6 +518,14 @@ export default function DashboardPage() {
   const [selectedCategory, setSelectedCategory] = useState("all")
   const searchInputRef = useRef<HTMLInputElement>(null)
   const [dataLoaded, setDataLoaded] = useState(false)
+  const [priceTrends, setPriceTrends] = useState<PriceTrendType[]>([])
+  const [isPriceTrendsLoading, setIsPriceTrendsLoading] = useState(false)
+  const [myPantryItems, setMyPantryItems] = useState<ProductType[]>([])
+  const [isMyPantryLoading, setIsMyPantryLoading] = useState(false)
+  const [myPantryTrends, setMyPantryTrends] = useState<PantryItemWithTrends[]>([])
+  const [isMyPantryTrendsLoading, setIsMyPantryTrendsLoading] = useState(false)
+  const [isAddPantryItemModalOpen, setIsAddPantryItemModalOpen] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Default store names for fallback
   const defaultStores = ["Walmart", "Target", "Kroger", "Costco", "Whole Foods"]
@@ -313,6 +598,15 @@ export default function DashboardPage() {
         // Only fetch if list hasn't been loaded yet
         fetchMyList(token)
       }
+
+      // Fetch price trends for dashboard
+      fetchPriceTrends(token)
+
+      // Fetch my pantry items
+      fetchMyPantryItems(token)
+
+      // Fetch my pantry trends
+      fetchMyPantryTrends(token)
     } catch (error) {
       console.error("Error parsing user data:", error)
       router.push("/login")
@@ -475,6 +769,78 @@ export default function DashboardPage() {
     }
   }
 
+  const fetchPriceTrends = async (token: string) => {
+    try {
+      setIsPriceTrendsLoading(true)
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/dashboard/price-trends`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch price trends")
+      }
+
+      const data = await response.json()
+      setPriceTrends(data.trends || [])
+    } catch (error) {
+      console.error("Error fetching price trends:", error)
+      // Don't show error toast for this one, as it's not critical
+    } finally {
+      setIsPriceTrendsLoading(false)
+    }
+  }
+
+  const fetchMyPantryItems = async (token: string) => {
+    try {
+      setIsMyPantryLoading(true)
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/pantry-items/my-pantry`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch your pantry items")
+      }
+
+      const data = await response.json()
+      setMyPantryItems(data.pantryItems || [])
+    } catch (error) {
+      console.error("Error fetching my pantry items:", error)
+      // Don't show error toast for this one, as it's not critical
+    } finally {
+      setIsMyPantryLoading(false)
+    }
+  }
+
+  const fetchMyPantryTrends = async (token: string) => {
+    try {
+      setIsMyPantryTrendsLoading(true)
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/pantry-items/my-pantry/trends`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch your pantry trends")
+      }
+
+      const data = await response.json()
+      setMyPantryTrends(data.pantryTrends || [])
+    } catch (error) {
+      console.error("Error fetching my pantry trends:", error)
+      // Don't show error toast for this one, as it's not critical
+    } finally {
+      setIsMyPantryTrendsLoading(false)
+    }
+  }
+
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -595,6 +961,59 @@ export default function DashboardPage() {
     }
   }
 
+  // Update the handleAddPantryItem function to handle errors better and provide more detailed feedback
+
+  const handleAddPantryItem = async (item: {
+    name: string
+    category: string
+    type: string
+    size: string
+    unit: string
+    quantity: number
+  }) => {
+    try {
+      const token = localStorage.getItem("token")
+
+      if (!token) {
+        router.push("/login")
+        return
+      }
+
+      setIsSubmitting(true) // Add this line to show loading state
+
+      console.log("Adding pantry item:", item)
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/pantry-items/my-pantry`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(item),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        console.error("Error response:", data)
+        throw new Error(data.message || "Failed to add item to your pantry")
+      }
+
+      // Close the modal
+      setIsAddPantryItemModalOpen(false)
+
+      // Refresh pantry items
+      fetchMyPantryItems(token)
+      fetchMyPantryTrends(token)
+
+      toast.success("Item added to your pantry!")
+    } catch (error) {
+      console.error("Error adding to pantry:", error)
+      toast.error(error instanceof Error ? error.message : "Failed to add item to your pantry")
+    } finally {
+      setIsSubmitting(false) // Add this line to hide loading state
+    }
+  }
+
   const handleRetry = () => {
     setRetryCount((prev) => prev + 1)
   }
@@ -671,6 +1090,27 @@ export default function DashboardPage() {
 
   // Check if Google Maps API key is available
   const hasGoogleMapsApiKey = !!process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+
+  // Format date for news items
+  const formatNewsDate = (dateString: string) => {
+    if (!dateString) return ""
+    const date = new Date(dateString)
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" })
+  }
+
+  // Format impact level for news items
+  const formatImpactLevel = (level: string) => {
+    switch (level?.toLowerCase()) {
+      case "high":
+        return "High Impact"
+      case "medium":
+        return "Medium Impact"
+      case "low":
+        return "Low Impact"
+      default:
+        return level || "Unknown Impact"
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -943,6 +1383,13 @@ export default function DashboardPage() {
         )}
       </AnimatePresence>
 
+      {/* Add Pantry Item Modal */}
+      <AddPantryItemModal
+        isOpen={isAddPantryItemModalOpen}
+        onClose={() => setIsAddPantryItemModalOpen(false)}
+        onAdd={handleAddPantryItem}
+      />
+
       {/* Navigation Tabs (Desktop) */}
       <div className="hidden md:block bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1041,17 +1488,7 @@ export default function DashboardPage() {
                       You selected: <span className="font-medium">{formatShoppingStyle(user.shoppingStyle)}</span>
                     </p>
                   </div>
-                  <div className="mt-4 md:mt-0">
-                    <span className="inline-flex rounded-md shadow-sm">
-                      <button
-                        type="button"
-                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 transition-colors duration-200"
-                      >
-                        <Bell className="h-4 w-4 mr-2" />
-                        Set Price Alerts
-                      </button>
-                    </span>
-                  </div>
+                  
                 </div>
               </motion.div>
 
@@ -1113,7 +1550,7 @@ export default function DashboardPage() {
                                             fill="currentColor"
                                             viewBox="0 0 20 20"
                                           >
-                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00.951-.69l1.07-3.292z"></path>
                                           </svg>
                                           {store.rating}
                                         </span>
@@ -1180,9 +1617,7 @@ export default function DashboardPage() {
                         )}
                         {dashboardData?.buyAlerts && dashboardData.buyAlerts.length > 0 && (
                           <div className="text-center mt-4">
-                            <button className="text-sm text-green-600 hover:text-green-700 font-medium">
-                              View all price alerts →
-                            </button>
+                            
                           </div>
                         )}
                       </div>
@@ -1239,9 +1674,6 @@ export default function DashboardPage() {
 
                     {filteredPantryItems.length > 0 && (
                       <div className="mt-6 text-center">
-                        <button className="text-sm text-green-600 hover:text-green-700 font-medium">
-                          View all pantry staples →
-                        </button>
                       </div>
                     )}
                   </motion.div>
@@ -1299,9 +1731,6 @@ export default function DashboardPage() {
 
                     {filteredProduceItems.length > 0 && (
                       <div className="mt-6 text-center">
-                        <button className="text-sm text-green-600 hover:text-green-700 font-medium">
-                          View all produce prices →
-                        </button>
                       </div>
                     )}
                   </motion.div>
@@ -1334,7 +1763,39 @@ export default function DashboardPage() {
                       </h2>
                     </div>
 
-                    {/* <PriceTrendChart /> */}
+                    {isPriceTrendsLoading ? (
+                      <div className="flex justify-center items-center py-12">
+                        <div className="text-center">
+                          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-green-600 border-r-transparent"></div>
+                          <p className="mt-4">Loading price trends...</p>
+                        </div>
+                      </div>
+                    ) : priceTrends && priceTrends.length > 0 ? (
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {priceTrends.slice(0, 2).map((trend) => (
+                          <PriceTrendChart
+                            key={trend.id}
+                            itemName={trend.name}
+                            priceHistory={trend.priceHistory}
+                            priceChange={trend.priceChange}
+                            currentPrice={trend.currentPrice}
+                            lowestPrice={trend.lowestPrice}
+                            highestPrice={trend.highestPrice}
+                            storeName={trend.storeName}
+                            seasonalLow={trend.seasonalLow}
+                            buyRecommendation={trend.buyRecommendation}
+                            buyRecommendationReason={trend.buyRecommendationReason}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <p className="text-gray-500">No price trends available at this time.</p>
+                        <p className="mt-2 text-sm text-gray-400">
+                          Add items to your pantry to start tracking price trends.
+                        </p>
+                      </div>
+                    )}
                   </motion.div>
 
                   {/* Grocery News */}
@@ -1368,8 +1829,14 @@ export default function DashboardPage() {
                               )}
                             </div>
                             <div className="ml-3">
-                              <p className="text-sm text-gray-700 font-medium">{news.title}</p>
+                              <div className="flex items-center">
+                                <p className="text-sm text-gray-700 font-medium">{news.title}</p>
+                                <span className="ml-2 text-xs text-gray-500">{formatNewsDate(news.publishedAt)}</span>
+                              </div>
                               <p className="text-xs text-gray-500 mt-1">{news.summary}</p>
+                              <span className="inline-block mt-1 text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded">
+                                {formatImpactLevel(news.impactLevel)}
+                              </span>
                             </div>
                           </motion.div>
                         ))
@@ -1601,50 +2068,78 @@ export default function DashboardPage() {
                     </svg>
                     My Pantry Items
                   </h2>
+                  <button
+                    onClick={() => setIsAddPantryItemModalOpen(true)}
+                    className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 transition-colors"
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add New Pantry Item
+                  </button>
                 </div>
 
                 {/* My Pantry Content */}
-                <div className="space-y-4">
-                  {/* This would be replaced with actual pantry items */}
-                  <div className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <h3 className="font-medium">Organic Brown Rice</h3>
-                      <p className="text-sm text-gray-500">2 lb bag</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-medium">$3.99</p>
-                      <p className="text-xs text-green-600">↓ 12% from last month</p>
+                {isMyPantryLoading ? (
+                  <div className="flex justify-center items-center py-12">
+                    <div className="text-center">
+                      <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-green-600 border-r-transparent"></div>
+                      <p className="mt-4">Loading your pantry items...</p>
                     </div>
                   </div>
-
-                  <div className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <h3 className="font-medium">Canned Black Beans</h3>
-                      <p className="text-sm text-gray-500">15 oz can</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-medium">$0.89</p>
-                      <p className="text-xs text-red-600">↑ 5% from last month</p>
-                    </div>
+                ) : myPantryItems.length > 0 ? (
+                  <div className="space-y-4">
+                    {myPantryItems.map((item) => (
+                      <motion.div
+                        key={item.id}
+                        className="flex items-center justify-between p-4 border rounded-lg hover:shadow-sm transition-shadow"
+                        whileHover={{ x: 5 }}
+                        transition={{ type: "spring", stiffness: 300 }}
+                      >
+                        <div>
+                          <h3 className="font-medium">{item.name}</h3>
+                          <p className="text-sm text-gray-500">
+                            {item.size} {item.unit}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-medium">${item.lowestPrice.price.toFixed(2)}</p>
+                          <p className="text-xs text-gray-600">Qty: {item.quantity || 1}</p>
+                        </div>
+                      </motion.div>
+                    ))}
                   </div>
-
-                  <div className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <h3 className="font-medium">Olive Oil, Extra Virgin</h3>
-                      <p className="text-sm text-gray-500">16.9 fl oz</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-medium">$8.49</p>
-                      <p className="text-xs text-green-600">↓ 8% from last month</p>
-                    </div>
-                  </div>
-
-                  <div className="mt-6">
-                    <button className="w-full py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors">
-                      Add New Pantry Item
+                ) : (
+                  <div className="text-center py-12">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="48"
+                      height="48"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="mx-auto text-gray-300"
+                    >
+                      <path d="M20 7h-3a2 2 0 0 1-2-2V2" />
+                      <path d="M9 2v3a2 2 0 0 1-2 2H4" />
+                      <path d="M12 22v-7" />
+                      <path d="M5 8v14h14V8" />
+                      <path d="M5 2v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V2" />
+                    </svg>
+                    <p className="mt-4 text-gray-500">Your pantry is empty.</p>
+                    <p className="mt-2 text-sm text-gray-400">
+                      Add items to your pantry to track prices and get alerts when prices drop.
+                    </p>
+                    <button
+                      onClick={() => setIsAddPantryItemModalOpen(true)}
+                      className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 transition-colors"
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      Add Your First Pantry Item
                     </button>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Price Trends for My Pantry */}
@@ -1670,7 +2165,38 @@ export default function DashboardPage() {
                   </h2>
                 </div>
 
-                {/* <PriceTrendChart userPantryOnly={true} /> */}
+                {isMyPantryTrendsLoading ? (
+                  <div className="flex justify-center items-center py-12">
+                    <div className="text-center">
+                      <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-green-600 border-r-transparent"></div>
+                      <p className="mt-4">Loading price trends...</p>
+                    </div>
+                  </div>
+                ) : myPantryTrends && myPantryTrends.length > 0 ? (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {myPantryTrends.slice(0, 4).map((trend) => (
+                      <PriceTrendChart
+                        key={trend.id}
+                        itemName={trend.name}
+                        priceHistory={trend.priceHistory}
+                        priceChange={trend.priceChange}
+                        currentPrice={trend.currentPrice}
+                        lowestPrice={trend.lowestPrice}
+                        highestPrice={trend.highestPrice}
+                        storeName={trend.storeName}
+                        quantity={trend.quantity}
+                        monthlyUsage={trend.monthlyUsage}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <p className="text-gray-500">No price trends available for your pantry items.</p>
+                    <p className="mt-2 text-sm text-gray-400">
+                      Add items to your pantry to start tracking price trends.
+                    </p>
+                  </div>
+                )}
               </div>
             </motion.div>
           </AnimatePresence>
