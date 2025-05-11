@@ -226,6 +226,9 @@ export default function SignupPage() {
       // Start checking data loading status
       if (verifyData.user && verifyData.user._id) {
         checkDataLoadingStatus(verifyData.user._id)
+      } else if (userId) {
+        // Use the userId we stored earlier if available
+        checkDataLoadingStatus(userId)
       } else {
         // If for some reason we don't have the user ID, redirect after a delay
         setTimeout(() => {
