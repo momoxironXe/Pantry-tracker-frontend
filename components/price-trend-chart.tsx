@@ -67,20 +67,25 @@ export default function PriceTrendChart({
     return `${sign}${value.toFixed(1)}%`
   }
 
-  // Update chart data when tab changes
+  // Update chart data when tab changes or when priceHistory changes
   useEffect(() => {
+    if (!priceHistory) {
+      setChartData([])
+      return
+    }
+
     switch (activeTab) {
       case "weekly":
-        setChartData(priceHistory.weekly)
+        setChartData(priceHistory.weekly || [])
         break
       case "monthly":
-        setChartData(priceHistory.monthly)
+        setChartData(priceHistory.monthly || [])
         break
       case "threeMonth":
-        setChartData(priceHistory.threeMonth)
+        setChartData(priceHistory.threeMonth || [])
         break
       default:
-        setChartData(priceHistory.weekly)
+        setChartData(priceHistory.weekly || [])
     }
   }, [activeTab, priceHistory])
 
@@ -98,6 +103,27 @@ export default function PriceTrendChart({
       )
     }
     return null
+  }
+
+  // If no price history data is available
+  if (!priceHistory || !priceHistory.weekly || priceHistory.weekly.length === 0) {
+    return (
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle className="flex justify-between items-start">
+            <span>{itemName}</span>
+            <span className="text-lg font-normal">{formatPrice(currentPrice)}</span>
+          </CardTitle>
+          <CardDescription>No price history available</CardDescription>
+        </CardHeader>
+        <CardContent className="h-[300px] flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-gray-500 mb-2">Price trend data is being collected</p>
+            <p className="text-sm text-gray-400">Check back soon for price trends</p>
+          </div>
+        </CardContent>
+      </Card>
+    )
   }
 
   return (

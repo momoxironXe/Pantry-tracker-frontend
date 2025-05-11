@@ -3,12 +3,14 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "react-hot-toast"
-import { Eye, EyeOff, ArrowRight, CheckCircle } from "lucide-react"
+import { Eye, EyeOff, ArrowRight, CheckCircle, Loader2 } from "lucide-react"
+import Link from "next/link"
 
 export default function SignupPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -29,6 +31,25 @@ export default function SignupPage() {
   const [userId, setUserId] = useState<string | null>(null)
   // For development mode - store the verification code if provided by the API
   const [devVerificationCode, setDevVerificationCode] = useState<string | null>(null)
+  // New state for data loading after verification
+  const [dataLoading, setDataLoading] = useState(false)
+  const [dataLoadingProgress, setDataLoadingProgress] = useState(0)
+  const [dataLoadingMessage, setDataLoadingMessage] = useState("")
+
+  useEffect(() => {
+    // Check if we have email and needsVerification in URL params
+    const email = searchParams.get("email")
+    const needsVerification = searchParams.get("needsVerification")
+
+    if (email && needsVerification === "true") {
+      setFormData((prev) => ({ ...prev, email }))
+      setStep(3) // Go directly to verification step
+      toast.info("Please verify your email to continue")
+
+      // Request a new verification code
+      handleResendCode(email)
+    }
+  }, [searchParams])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -105,8 +126,10 @@ export default function SignupPage() {
 
       // Check if we're in development mode and have a verification code
       if (data.verificationCode) {
+        if (process.env.NODE_ENV === "development" && process.env.NEXT_PUBLIC_DEBUG_VERIFICATION === "true") {
+          console.log("Development mode: Verification code:", data.verificationCode)
+        }
         setDevVerificationCode(data.verificationCode)
-        console.log("Development mode: Verification code:", data.verificationCode)
       }
 
       setVerificationSent(true)
@@ -117,6 +140,42 @@ export default function SignupPage() {
       toast.error(error instanceof Error ? error.message : "Failed to create account")
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Function to check data loading status
+  const checkDataLoadingStatus = async (userId: string) => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/data-fetch-status/${userId}`)
+
+      if (!response.ok) {
+        throw new Error("Failed to check data loading status")
+      }
+
+      const data = await response.json()
+
+      setDataLoadingProgress(data.progress || 0)
+      setDataLoadingMessage(data.message || "Setting up your account...")
+
+      if (data.status === "completed" || data.progress >= 100) {
+        setDataLoading(false)
+        toast.success("Your account is ready!")
+        router.push("/login?message=Your account is ready! You can now sign in.")
+      } else if (data.status === "failed") {
+        setDataLoading(false)
+        toast.error("There was an issue setting up your account. You can still sign in.")
+        router.push("/login?message=There was an issue setting up your account. You can still sign in.")
+      } else {
+        // Continue checking status
+        setTimeout(() => checkDataLoadingStatus(userId), 2000)
+      }
+    } catch (error) {
+      console.error("Error checking data loading status:", error)
+      // If there's an error, we'll still redirect to login after a delay
+      setTimeout(() => {
+        setDataLoading(false)
+        router.push("/login")
+      }, 5000)
     }
   }
 
@@ -144,11 +203,12 @@ export default function SignupPage() {
         }),
       })
 
-      const verifyData = await verifyResponse.json()
-
       if (!verifyResponse.ok) {
-        throw new Error(verifyData.message || "Invalid verification code")
+        const errorData = await verifyResponse.json()
+        throw new Error(errorData.message || "Invalid verification code")
       }
+
+      const verifyData = await verifyResponse.json()
 
       // Get the token from the verification response
       const token = verifyData.token
@@ -157,26 +217,41 @@ export default function SignupPage() {
       localStorage.setItem("token", token)
       localStorage.setItem("user", JSON.stringify(verifyData.user))
 
-      toast.success("Account verified! Redirecting to dashboard...")
-      router.push("/dashboard")
+      // Show data loading screen
+      setLoading(false)
+      setDataLoading(true)
+      setDataLoadingProgress(0)
+      setDataLoadingMessage("Initializing your account...")
+
+      // Start checking data loading status
+      if (verifyData.user && verifyData.user._id) {
+        checkDataLoadingStatus(verifyData.user._id)
+      } else {
+        // If for some reason we don't have the user ID, redirect after a delay
+        setTimeout(() => {
+          setDataLoading(false)
+          router.push("/login")
+        }, 10000)
+      }
     } catch (error) {
       console.error("Verification error:", error)
       setVerificationError(error instanceof Error ? error.message : "Verification failed")
-    } finally {
       setLoading(false)
     }
   }
 
-  const handleResendCode = async () => {
+  const handleResendCode = async (emailOverride?: string) => {
     setLoading(true)
     try {
+      const email = emailOverride || formData.email
+
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/resend-verification`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email: formData.email,
+          email,
         }),
       })
 
@@ -188,8 +263,10 @@ export default function SignupPage() {
 
       // Check if we're in development mode and have a verification code
       if (data.code) {
+        if (process.env.NODE_ENV === "development" && process.env.NEXT_PUBLIC_DEBUG_VERIFICATION === "true") {
+          console.log("Development mode: New verification code:", data.code)
+        }
         setDevVerificationCode(data.code)
-        console.log("Development mode: New verification code:", data.code)
       }
 
       toast.success("Verification code resent to your email")
@@ -201,12 +278,40 @@ export default function SignupPage() {
     }
   }
 
-  // Auto-fill verification code in development mode
+  // Auto-fill verification code only when explicitly enabled for testing
   useEffect(() => {
-    if (devVerificationCode && process.env.NODE_ENV === "development") {
+    if (
+      devVerificationCode &&
+      process.env.NODE_ENV === "development" &&
+      process.env.NEXT_PUBLIC_AUTO_FILL_VERIFICATION === "true"
+    ) {
       setVerificationCode(devVerificationCode)
     }
   }, [devVerificationCode])
+
+  // If data is loading, show the loading screen
+  if (dataLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col justify-center items-center py-12 px-6">
+        <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8 text-center">
+          <Loader2 className="h-12 w-12 text-green-600 animate-spin mx-auto mb-6" />
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Setting up your account</h2>
+          <p className="text-gray-600 mb-6">{dataLoadingMessage}</p>
+
+          <div className="w-full bg-gray-200 rounded-full h-2.5 mb-4">
+            <div
+              className="bg-green-600 h-2.5 rounded-full transition-all duration-500"
+              style={{ width: `${dataLoadingProgress}%` }}
+            ></div>
+          </div>
+
+          <p className="text-sm text-gray-500">
+            We're preparing your personalized shopping experience. This may take a minute...
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
@@ -458,9 +563,19 @@ export default function SignupPage() {
                   <button
                     type="button"
                     onClick={handleSendVerification}
-                    className="flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                    disabled={loading}
+                    className="flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-70 disabled:cursor-not-allowed"
                   >
-                    Continue <ArrowRight className="ml-2 h-4 w-4" />
+                    {loading ? (
+                      <>
+                        <Loader2 className="animate-spin h-4 w-4 mr-2" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        Continue <ArrowRight className="ml-2 h-4 w-4" />
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
@@ -490,13 +605,7 @@ export default function SignupPage() {
                     registration.
                   </p>
 
-                  {devVerificationCode && process.env.NODE_ENV === "development" && (
-                    <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-md">
-                      <p className="text-sm text-yellow-800">
-                        <strong>Development Mode:</strong> Verification code: {devVerificationCode}
-                      </p>
-                    </div>
-                  )}
+                  {/* Development verification code is no longer displayed to users */}
                 </div>
 
                 <div className="flex items-center justify-between">
@@ -510,16 +619,23 @@ export default function SignupPage() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                    className="flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-70 disabled:cursor-not-allowed"
                   >
-                    {loading ? "Creating account..." : "Complete Registration"}
+                    {loading ? (
+                      <>
+                        <Loader2 className="animate-spin h-4 w-4 mr-2" />
+                        Verifying...
+                      </>
+                    ) : (
+                      "Complete Registration"
+                    )}
                   </button>
                 </div>
 
                 <div className="text-center mt-4">
                   <button
                     type="button"
-                    onClick={handleResendCode}
+                    onClick={() => handleResendCode()}
                     disabled={loading}
                     className="text-sm text-green-600 hover:text-green-500"
                   >
@@ -541,12 +657,12 @@ export default function SignupPage() {
             </div>
 
             <div className="mt-6">
-              <button
-                onClick={() => router.push("/login")}
+              <Link
+                href="/login"
                 className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
               >
                 Sign in
-              </button>
+              </Link>
             </div>
           </div>
         </div>
