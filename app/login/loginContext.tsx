@@ -49,15 +49,19 @@ export default function LoginPage() {
         body: JSON.stringify({ email }),
       })
 
+      if (!response.ok) {
+        throw new Error("Failed to check data fetch status")
+      }
+
       const result = await response.json()
 
-      if (response.ok && result.status === "completed") {
+      if (result.status === "completed") {
         setIsCheckingStatus(false)
         localStorage.removeItem("pendingLoginEmail")
         setMessage("Your account is ready! You can now sign in.")
-      } else if (response.ok && result.status === "pending") {
-        // Keep checking every 5 seconds
-        setTimeout(() => checkDataFetchStatus(email), 5000)
+      } else if (result.status === "pending") {
+        // Keep checking every 3 seconds
+        setTimeout(() => checkDataFetchStatus(email), 3000)
       } else {
         // Either failed or user doesn't exist
         setIsCheckingStatus(false)
@@ -131,13 +135,13 @@ export default function LoginPage() {
     setIsLoading(true)
     try {
       // First check if email is verified
-      // const isVerified = await checkEmailVerification(formData.email)
+      const isVerified = await checkEmailVerification(formData.email)
 
-      // if (!isVerified) {
-      //   // Redirect to signup page with email pre-filled for verification
-      //   router.push(`/signup?email=${encodeURIComponent(formData.email)}&needsVerification=true`)
-      //   return
-      // }
+      if (!isVerified) {
+        // Redirect to signup page with email pre-filled for verification
+        router.push(`/signup?email=${encodeURIComponent(formData.email)}&needsVerification=true`)
+        return
+      }
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/login`, {
         method: "POST",
