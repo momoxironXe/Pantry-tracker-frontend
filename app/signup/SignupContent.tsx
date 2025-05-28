@@ -40,7 +40,7 @@ export default function SignupContent() {
     if (email && needsVerification === "true") {
       setFormData((prev) => ({ ...prev, email }))
       setStep(3)
-      toast.info("Please verify your email to continue")
+      toast("Please verify your email to continue");
       handleResendCode(email)
     }
   }, [searchParams])

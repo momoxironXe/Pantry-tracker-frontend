@@ -1,9 +1,9 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useEffect, useState, useRef } from "react"
-import { useRouter } from "next/navigation"
+import { useEffect, useState, useRef } from "react";
+import { useRouter } from "next/navigation";
 import {
   AlertCircle,
   Bell,
@@ -25,141 +25,142 @@ import {
   Truck,
   User,
   X,
-} from "lucide-react"
-import { motion, AnimatePresence } from "framer-motion"
-import GoogleMap from "@/components/google-map"
-import { toast } from "react-hot-toast"
-import PriceTrendChart from "@/components/price-trend-chart"
-import BulkBuyCalculator from "@/components/bulk-buy-calculator"
-import RecipePriceTracker from "@/components/recipe-price-tracker"
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import GoogleMap from "@/components/google-map";
+import { toast } from "react-hot-toast";
+import PriceTrendChart from "@/components/price-trend-chart";
+import BulkBuyCalculator from "@/components/bulk-buy-calculator";
+import RecipePriceTracker from "@/components/recipe-price-tracker";
 
 // Type definitions remain the same...
 type UserType = {
-  _id: string
-  firstName: string
-  lastName: string
-  fullName: string
-  email: string
-  zipCode: string
-  shoppingStyle: string
-}
+  _id: string;
+  firstName: string;
+  lastName: string;
+  fullName: string;
+  email: string;
+  zipCode: string;
+  shoppingStyle: string;
+};
 
 type StoreType = {
-  _id: string
-  name: string
+  _id: string;
+  name: string;
   address: {
-    formattedAddress: string
-    zipCode: string
-    country: string
-  }
+    formattedAddress: string;
+    zipCode: string;
+    country: string;
+  };
   location: {
-    type: string
-    coordinates: number[]
-  }
+    type: string;
+    coordinates: number[];
+  };
   hours: {
-    [key: string]: string
-  }
-  chainName: string
-  storeType: string
-  phone: string
-  website?: string
-  rating: number
-  priceLevel?: number
-}
+    [key: string]: string;
+  };
+  chainName: string;
+  storeType: string;
+  phone: string;
+  website?: string;
+  rating: number;
+  priceLevel?: number;
+};
 
 type PriceInfo = {
-  price: number
-  store: string
-}
+  price: number;
+  store: string;
+};
 
 type PriceRange = {
-  min: number
-  max: number
-  period: string
-}
+  min: number;
+  max: number;
+  period: string;
+};
 
 type ProductType = {
-  id: string
-  name: string
-  description: string
-  category: string
-  type: string
-  size: string
-  unit: string
-  imageUrl: string
-  lowestPrice: PriceInfo
-  priceRange: PriceRange
-  isBuyRecommended: boolean
-  buyRecommendationReason: string
-  isHealthy: boolean
-  isValuePick: boolean
-  isBulkOption: boolean
-  quantity?: number
-  addedAt?: string
-}
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  type: string;
+  size: string;
+  unit: string;
+  imageUrl: string;
+  lowestPrice: PriceInfo;
+  priceRange: PriceRange;
+  isBuyRecommended: boolean;
+  buyRecommendationReason: string;
+  isHealthy: boolean;
+  isValuePick: boolean;
+  isBulkOption: boolean;
+  quantity?: number;
+  addedAt?: string;
+};
 
 type NewsItemType = {
-  id: string
-  title: string
-  summary: string
-  category: string
-  impactLevel: string
-  publishedAt: string
-}
+  id: string;
+  title: string;
+  url?: string;
+  summary: string;
+  category: string;
+  impactLevel: string;
+  publishedAt: string;
+};
 
 type DashboardDataType = {
-  stores: StoreType[]
-  pantryItems: ProductType[]
-  produceItems: ProductType[]
-  buyAlerts: ProductType[]
-  newsHighlights: NewsItemType[]
-}
+  stores: StoreType[];
+  pantryItems: ProductType[];
+  produceItems: ProductType[];
+  buyAlerts: ProductType[];
+  newsHighlights: NewsItemType[];
+};
 
 type PricePoint = {
-  date: string
-  price: number
-  storeName?: string
-}
+  date: string;
+  price: number;
+  storeName?: string;
+};
 
 type PriceHistory = {
-  weekly: PricePoint[]
-  monthly: PricePoint[]
-  threeMonth: PricePoint[]
-}
+  weekly: PricePoint[];
+  monthly: PricePoint[];
+  threeMonth: PricePoint[];
+};
 
 type PriceChange = {
-  weekly: number
-  monthly: number
-  threeMonth: number
-}
+  weekly: number;
+  monthly: number;
+  threeMonth: number;
+};
 
 type PriceTrendType = {
-  id: string
-  name: string
-  currentPrice: number
-  priceHistory: PriceHistory
-  priceChange: PriceChange
-  lowestPrice: number
-  highestPrice: number
-  storeName: string
-  seasonalLow?: boolean
-  buyRecommendation?: boolean
-  buyRecommendationReason?: string
-}
+  id: string;
+  name: string;
+  currentPrice: number;
+  priceHistory: PriceHistory;
+  priceChange: PriceChange;
+  lowestPrice: number;
+  highestPrice: number;
+  storeName: string;
+  seasonalLow?: boolean;
+  buyRecommendation?: boolean;
+  buyRecommendationReason?: string;
+};
 
 type PantryItemWithTrends = {
-  id: string
-  name: string
-  quantity: number
-  monthlyUsage: number
-  addedAt: string
-  currentPrice: number
-  priceHistory: PriceHistory
-  priceChange: PriceChange
-  lowestPrice: number
-  highestPrice: number
-  storeName: string
-}
+  id: string;
+  name: string;
+  quantity: number;
+  monthlyUsage: number;
+  addedAt: string;
+  currentPrice: number;
+  priceHistory: PriceHistory;
+  priceChange: PriceChange;
+  lowestPrice: number;
+  highestPrice: number;
+  storeName: string;
+};
 
 // Product Card Component for consistent styling
 const ProductCard = ({
@@ -168,17 +169,19 @@ const ProductCard = ({
   onRemoveFromList,
   isInList = false,
 }: {
-  product: ProductType
-  onAddToList?: (id: string) => void
-  onRemoveFromList?: (id: string) => void
-  isInList?: boolean
+  product: ProductType;
+  onAddToList?: (id: string) => void;
+  onRemoveFromList?: (id: string) => void;
+  isInList?: boolean;
 }) => {
   return (
     <div className="border rounded-lg overflow-hidden hover:shadow-md transition-shadow h-full flex flex-col">
       <div className="p-4 flex flex-col h-full">
         {/* Header with product name and badges */}
         <div className="flex justify-between items-start mb-3">
-          <h3 className="text-sm font-medium text-gray-900 leading-tight">{product.name}</h3>
+          <h3 className="text-sm font-medium text-gray-900 leading-tight">
+            {product.name}
+          </h3>
           <div className="flex-shrink-0 ml-2">
             {product.isBuyRecommended && (
               <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 whitespace-nowrap">
@@ -201,7 +204,8 @@ const ProductCard = ({
               alt={product.name}
               className="h-full w-auto object-contain"
               onError={(e) => {
-                ;(e.target as HTMLImageElement).src = "/colorful-grocery-aisle.png"
+                (e.target as HTMLImageElement).src =
+                  "/colorful-grocery-aisle.png";
               }}
             />
           )}
@@ -210,8 +214,12 @@ const ProductCard = ({
         {/* Price information */}
         <div className="mb-2">
           <div className="flex items-baseline">
-            <span className="text-lg font-semibold text-gray-900">${product.lowestPrice.price.toFixed(2)}</span>
-            <span className="ml-1 text-sm text-gray-500">@ {product.lowestPrice.store}</span>
+            <span className="text-lg font-semibold text-gray-900">
+              ${product.lowestPrice.price.toFixed(2)}
+            </span>
+            <span className="ml-1 text-sm text-gray-500">
+              @ {product.lowestPrice.store}
+            </span>
           </div>
         </div>
 
@@ -222,7 +230,9 @@ const ProductCard = ({
             <span>Price range past 6 weeks:</span>
           </div>
           <div className="mt-1 flex items-center">
-            <span className="font-medium">${product.priceRange.min.toFixed(2)}</span>
+            <span className="font-medium">
+              ${product.priceRange.min.toFixed(2)}
+            </span>
             <div className="mx-2 h-0.5 w-8 bg-gray-200 rounded"></div>
             <span>${product.priceRange.max.toFixed(2)}</span>
           </div>
@@ -232,12 +242,18 @@ const ProductCard = ({
         <div className="flex items-center text-xs mb-3 flex-wrap gap-1">
           <span
             className={`px-2 py-0.5 rounded ${
-              product.type === "Store Brand" ? "bg-blue-100 text-blue-800" : "bg-purple-100 text-purple-800"
+              product.type === "Store Brand"
+                ? "bg-blue-100 text-blue-800"
+                : "bg-purple-100 text-purple-800"
             }`}
           >
             {product.type}
           </span>
-          {product.isHealthy && <span className="px-2 py-0.5 rounded bg-green-100 text-green-800">Organic</span>}
+          {product.isHealthy && (
+            <span className="px-2 py-0.5 rounded bg-green-100 text-green-800">
+              Organic
+            </span>
+          )}
         </div>
 
         {/* Spacer to push button to bottom */}
@@ -263,8 +279,8 @@ const ProductCard = ({
         )}
       </div>
     </div>
-  )
-}
+  );
+};
 
 // Add New Pantry Item Modal Component
 const AddPantryItemModal = ({
@@ -272,27 +288,34 @@ const AddPantryItemModal = ({
   onClose,
   onAdd,
 }: {
-  isOpen: boolean
-  onClose: () => void
-  onAdd: (item: { name: string; category: string; type: string; size: string; unit: string; quantity: number }) => void
+  isOpen: boolean;
+  onClose: () => void;
+  onAdd: (item: {
+    name: string;
+    category: string;
+    type: string;
+    size: string;
+    unit: string;
+    quantity: number;
+  }) => void;
 }) => {
-  const [name, setName] = useState("")
-  const [category, setCategory] = useState("Pantry")
-  const [type, setType] = useState("Store Brand")
-  const [size, setSize] = useState("")
-  const [unit, setUnit] = useState("each")
-  const [quantity, setQuantity] = useState(1)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [name, setName] = useState("");
+  const [category, setCategory] = useState("Pantry");
+  const [type, setType] = useState("Store Brand");
+  const [size, setSize] = useState("");
+  const [unit, setUnit] = useState("each");
+  const [quantity, setQuantity] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsSubmitting(true)
+    e.preventDefault();
+    setIsSubmitting(true);
 
     // Validate form
     if (!name.trim()) {
-      toast.error("Please enter a name for the item")
-      setIsSubmitting(false)
-      return
+      toast.error("Please enter a name for the item");
+      setIsSubmitting(false);
+      return;
     }
 
     // Submit form
@@ -303,18 +326,18 @@ const AddPantryItemModal = ({
       size,
       unit,
       quantity,
-    })
+    });
 
     // Reset form (this will happen after onAdd completes)
-    setName("")
-    setCategory("Pantry")
-    setType("Store Brand")
-    setSize("")
-    setUnit("each")
-    setQuantity(1)
-  }
+    setName("");
+    setCategory("Pantry");
+    setType("Store Brand");
+    setSize("");
+    setUnit("each");
+    setQuantity(1);
+  };
 
-  if (!isOpen) return null
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -323,7 +346,10 @@ const AddPantryItemModal = ({
           <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
         </div>
 
-        <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">
+        <span
+          className="hidden sm:inline-block sm:align-middle sm:h-screen"
+          aria-hidden="true"
+        >
           &#8203;
         </span>
 
@@ -331,11 +357,16 @@ const AddPantryItemModal = ({
           <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
             <div className="sm:flex sm:items-start">
               <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                <h3 className="text-lg leading-6 font-medium text-gray-900">Add New Pantry Item</h3>
+                <h3 className="text-lg leading-6 font-medium text-gray-900">
+                  Add New Pantry Item
+                </h3>
                 <div className="mt-4">
                   <form onSubmit={handleSubmit}>
                     <div className="mb-4">
-                      <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                      <label
+                        htmlFor="name"
+                        className="block text-sm font-medium text-gray-700"
+                      >
                         Item Name *
                       </label>
                       <input
@@ -350,7 +381,10 @@ const AddPantryItemModal = ({
 
                     <div className="grid grid-cols-2 gap-4 mb-4">
                       <div>
-                        <label htmlFor="category" className="block text-sm font-medium text-gray-700">
+                        <label
+                          htmlFor="category"
+                          className="block text-sm font-medium text-gray-700"
+                        >
                           Category
                         </label>
                         <select
@@ -372,7 +406,10 @@ const AddPantryItemModal = ({
                       </div>
 
                       <div>
-                        <label htmlFor="type" className="block text-sm font-medium text-gray-700">
+                        <label
+                          htmlFor="type"
+                          className="block text-sm font-medium text-gray-700"
+                        >
                           Type
                         </label>
                         <select
@@ -391,7 +428,10 @@ const AddPantryItemModal = ({
 
                     <div className="grid grid-cols-2 gap-4 mb-4">
                       <div>
-                        <label htmlFor="size" className="block text-sm font-medium text-gray-700">
+                        <label
+                          htmlFor="size"
+                          className="block text-sm font-medium text-gray-700"
+                        >
                           Size
                         </label>
                         <input
@@ -405,7 +445,10 @@ const AddPantryItemModal = ({
                       </div>
 
                       <div>
-                        <label htmlFor="unit" className="block text-sm font-medium text-gray-700">
+                        <label
+                          htmlFor="unit"
+                          className="block text-sm font-medium text-gray-700"
+                        >
                           Unit
                         </label>
                         <select
@@ -430,7 +473,10 @@ const AddPantryItemModal = ({
                     </div>
 
                     <div className="mb-4">
-                      <label htmlFor="quantity" className="block text-sm font-medium text-gray-700">
+                      <label
+                        htmlFor="quantity"
+                        className="block text-sm font-medium text-gray-700"
+                      >
                         Quantity
                       </label>
                       <input
@@ -495,126 +541,150 @@ const AddPantryItemModal = ({
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
 export default function DashboardPage() {
   // State definitions remain the same...
-  const router = useRouter()
-  const [user, setUser] = useState<UserType | null>(null)
-  const [dashboardData, setDashboardData] = useState<DashboardDataType | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [dataLoading, setDataLoading] = useState(true)
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [retryCount, setRetryCount] = useState(0)
-  const [searchQuery, setSearchQuery] = useState("")
-  const [isSearching, setIsSearching] = useState(false)
-  const [searchResults, setSearchResults] = useState<ProductType[]>([])
-  const [myList, setMyList] = useState<ProductType[]>([])
-  const [isMyListLoading, setIsMyListLoading] = useState(false)
-  const [activeTab, setActiveTab] = useState("dashboard")
-  const [selectedCategory, setSelectedCategory] = useState("all")
-  const searchInputRef = useRef<HTMLInputElement>(null)
-  const [dataLoaded, setDataLoaded] = useState(false)
-  const [priceTrends, setPriceTrends] = useState<PriceTrendType[]>([])
-  const [isPriceTrendsLoading, setIsPriceTrendsLoading] = useState(false)
-  const [myPantryItems, setMyPantryItems] = useState<ProductType[]>([])
-  const [isMyPantryLoading, setIsMyPantryLoading] = useState(false)
-  const [myPantryTrends, setMyPantryTrends] = useState<PantryItemWithTrends[]>([])
-  const [isMyPantryTrendsLoading, setIsMyPantryTrendsLoading] = useState(false)
-  const [isAddPantryItemModalOpen, setIsAddPantryItemModalOpen] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const router = useRouter();
+  const [user, setUser] = useState<UserType | null>(null);
+  const [dashboardData, setDashboardData] = useState<DashboardDataType | null>(
+    null
+  );
+  const [loading, setLoading] = useState(true);
+  const [dataLoading, setDataLoading] = useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState<ProductType[]>([]);
+  const [myList, setMyList] = useState<ProductType[]>([]);
+  const [isMyListLoading, setIsMyListLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("dashboard");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const [dataLoaded, setDataLoaded] = useState(false);
+  const [priceTrends, setPriceTrends] = useState<PriceTrendType[]>([]);
+  const [isPriceTrendsLoading, setIsPriceTrendsLoading] = useState(false);
+  const [myPantryItems, setMyPantryItems] = useState<ProductType[]>([]);
+  const [isMyPantryLoading, setIsMyPantryLoading] = useState(false);
+  const [myPantryTrends, setMyPantryTrends] = useState<PantryItemWithTrends[]>(
+    []
+  );
+  const [isMyPantryTrendsLoading, setIsMyPantryTrendsLoading] = useState(false);
+  const [isAddPantryItemModalOpen, setIsAddPantryItemModalOpen] =
+    useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Default store names for fallback
-  const defaultStores = ["Walmart", "Target", "Kroger", "Costco", "Whole Foods"]
+  const defaultStores = [
+    "Walmart",
+    "Target",
+    "Kroger",
+    "Costco",
+    "Whole Foods",
+  ];
 
   // Rest of the component logic remains the same...
   useEffect(() => {
     // Check if user is logged in
-    const token = localStorage.getItem("token")
-    const userData = localStorage.getItem("user")
+    const token = localStorage.getItem("token");
+    const userData = localStorage.getItem("user");
 
     if (!token || !userData) {
-      router.push("/login")
-      return
+      router.push("/login");
+      return;
     }
 
     try {
-      const parsedUser = JSON.parse(userData)
-      setUser(parsedUser)
-      setLoading(false)
+      const parsedUser = JSON.parse(userData);
+      setUser(parsedUser);
+      setLoading(false);
 
       // Check if dashboard data is already in localStorage
-      const cachedDashboardData = localStorage.getItem("dashboardData")
-      const cachedMyList = localStorage.getItem("myList")
-      const lastFetchTime = localStorage.getItem("lastFetchTime")
-      const currentTime = new Date().getTime()
+      const cachedDashboardData = localStorage.getItem("dashboardData");
+      const cachedMyList = localStorage.getItem("myList");
+      const lastFetchTime = localStorage.getItem("lastFetchTime");
+      const currentTime = new Date().getTime();
 
       // Check if cached data exists and is less than 1 hour old
-      const isCacheValid = lastFetchTime && currentTime - Number.parseInt(lastFetchTime) < 3600000
+      const isCacheValid =
+        lastFetchTime && currentTime - Number.parseInt(lastFetchTime) < 3600000;
 
       if (cachedDashboardData && isCacheValid && !dataLoaded) {
         try {
-          const parsedData = JSON.parse(cachedDashboardData)
+          const parsedData = JSON.parse(cachedDashboardData);
 
           // Ensure all products have valid price data
           const validatedData = {
             ...parsedData,
-            pantryItems: ensureValidPriceData(parsedData.pantryItems || [], parsedData.stores),
-            produceItems: ensureValidPriceData(parsedData.produceItems || [], parsedData.stores),
-            buyAlerts: ensureValidPriceData(parsedData.buyAlerts || [], parsedData.stores),
-          }
+            pantryItems: ensureValidPriceData(
+              parsedData.pantryItems || [],
+              parsedData.stores
+            ),
+            produceItems: ensureValidPriceData(
+              parsedData.produceItems || [],
+              parsedData.stores
+            ),
+            buyAlerts: ensureValidPriceData(
+              parsedData.buyAlerts || [],
+              parsedData.stores
+            ),
+          };
 
-          setDashboardData(validatedData)
-          setDataLoaded(true)
-          setDataLoading(false)
+          setDashboardData(validatedData);
+          setDataLoaded(true);
+          setDataLoading(false);
         } catch (e) {
-          console.error("Error parsing cached dashboard data:", e)
+          console.error("Error parsing cached dashboard data:", e);
           // If parsing fails, fetch fresh data
-          fetchDashboardData(token)
+          fetchDashboardData(token);
         }
       } else if (!dataLoaded) {
         // Only fetch if data hasn't been loaded yet
-        fetchDashboardData(token)
+        fetchDashboardData(token);
       }
 
       if (cachedMyList && isCacheValid && !isMyListLoading) {
         try {
-          const parsedList = JSON.parse(cachedMyList)
+          const parsedList = JSON.parse(cachedMyList);
           // Ensure all list items have valid price data
           const validatedList = ensureValidPriceData(
             parsedList,
-            defaultStores.map((name) => ({ name })),
-          )
-          setMyList(validatedList)
+            defaultStores.map((name) => ({ name }))
+          );
+          setMyList(validatedList);
         } catch (e) {
-          console.error("Error parsing cached list data:", e)
+          console.error("Error parsing cached list data:", e);
           // If parsing fails, fetch fresh data
-          fetchMyList(token)
+          fetchMyList(token);
         }
       } else if (!isMyListLoading) {
         // Only fetch if list hasn't been loaded yet
-        fetchMyList(token)
+        fetchMyList(token);
       }
 
       // Fetch price trends for dashboard
-      fetchPriceTrends(token)
+      fetchPriceTrends(token);
 
       // Fetch my pantry items
-      fetchMyPantryItems(token)
+      fetchMyPantryItems(token);
 
       // Fetch my pantry trends
-      fetchMyPantryTrends(token)
+      fetchMyPantryTrends(token);
     } catch (error) {
-      console.error("Error parsing user data:", error)
-      router.push("/login")
+      console.error("Error parsing user data:", error);
+      router.push("/login");
     }
-  }, [router, retryCount, dataLoaded])
+  }, [router, retryCount, dataLoaded]);
 
   // Update the ensureValidPriceData function to use varied store names
-  const ensureValidPriceData = (products: ProductType[], stores: any[] = []) => {
+  const ensureValidPriceData = (
+    products: ProductType[],
+    stores: any[] = []
+  ) => {
     // List of varied store names to use when needed
     const storeVariety = [
       "Walmart",
@@ -637,46 +707,52 @@ export default function DashboardPage() {
       "ShopRite",
       "Sprouts",
       "Fresh Market",
-    ]
+    ];
 
     return products.map((product, index) => {
       // Get a store name - either from the product's store, or from available stores, or from variety
-      let storeName = product.lowestPrice?.store
+      let storeName = product.lowestPrice?.store;
 
       if (!storeName || storeName === "Unknown Store") {
         // Try to get a store from the available stores
         if (stores && stores.length > 0) {
-          const randomStore = stores[Math.floor(Math.random() * stores.length)]
-          storeName = randomStore.name || randomStore.chainName || storeVariety[index % storeVariety.length]
+          const randomStore = stores[Math.floor(Math.random() * stores.length)];
+          storeName =
+            randomStore.name ||
+            randomStore.chainName ||
+            storeVariety[index % storeVariety.length];
         } else {
           // Use a varied store name based on product index
-          storeName = storeVariety[index % storeVariety.length]
+          storeName = storeVariety[index % storeVariety.length];
         }
       }
 
       // Ensure price is a valid number greater than 0
-      const price = product.lowestPrice?.price || 0
-      const validPrice = price > 0 ? price : (Math.random() * 10 + 1).toFixed(2)
+      const price = product.lowestPrice?.price || 0;
+      const validPrice =
+        price > 0 ? price : (Math.random() * 10 + 1).toFixed(2);
 
       // Ensure price range has valid values
-      const minPrice = product.priceRange?.min || 0
-      const maxPrice = product.priceRange?.max || 0
+      const minPrice = product.priceRange?.min || 0;
+      const maxPrice = product.priceRange?.max || 0;
 
-      let validMinPrice = minPrice
-      let validMaxPrice = maxPrice
+      let validMinPrice = minPrice;
+      let validMaxPrice = maxPrice;
 
       // If min and max are both 0, generate random values
       if (minPrice === 0 && maxPrice === 0) {
-        validMinPrice = Number.parseFloat((Math.random() * 5 + 1).toFixed(2))
-        validMaxPrice = Number.parseFloat((validMinPrice + Math.random() * 5).toFixed(2))
+        validMinPrice = Number.parseFloat((Math.random() * 5 + 1).toFixed(2));
+        validMaxPrice = Number.parseFloat(
+          (validMinPrice + Math.random() * 5).toFixed(2)
+        );
       }
       // If only min is 0, set it to 80% of max
       else if (minPrice === 0 && maxPrice > 0) {
-        validMinPrice = Number.parseFloat((maxPrice * 0.8).toFixed(2))
+        validMinPrice = Number.parseFloat((maxPrice * 0.8).toFixed(2));
       }
       // If only max is 0, set it to 120% of min
       else if (minPrice > 0 && maxPrice === 0) {
-        validMaxPrice = Number.parseFloat((minPrice * 1.2).toFixed(2))
+        validMaxPrice = Number.parseFloat((minPrice * 1.2).toFixed(2));
       }
 
       return {
@@ -690,362 +766,406 @@ export default function DashboardPage() {
           max: validMaxPrice,
           period: product.priceRange?.period || "6 weeks",
         },
-      }
-    })
-  }
+      };
+    });
+  };
 
   // Other functions remain the same...
   const fetchDashboardData = async (token: string) => {
     try {
-      setDataLoading(true)
-      setError(null)
+      setDataLoading(true);
+      setError(null);
 
-      console.log("Fetching dashboard data...")
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/dashboard`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
+      console.log("Fetching dashboard data...");
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/dashboard`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        console.error("Dashboard fetch error:", errorData)
-        throw new Error(errorData.message || "Failed to fetch dashboard data")
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Dashboard fetch error:", errorData);
+        throw new Error(errorData.message || "Failed to fetch dashboard data");
       }
 
-      const data = await response.json()
-      console.log("Dashboard data received:", data)
+      const data = await response.json();
+      console.log("Dashboard data received:", data);
 
       // Ensure all required properties exist with defaults if missing
       const formattedData: DashboardDataType = {
         stores: data.stores || [],
         pantryItems: ensureValidPriceData(data.pantryItems || [], data.stores),
-        produceItems: ensureValidPriceData(data.produceItems || [], data.stores),
+        produceItems: ensureValidPriceData(
+          data.produceItems || [],
+          data.stores
+        ),
         buyAlerts: ensureValidPriceData(data.buyAlerts || [], data.stores),
         newsHighlights: data.newsHighlights || [],
-      }
+      };
 
-      setDashboardData(formattedData)
-      setDataLoaded(true)
+      setDashboardData(formattedData);
+      setDataLoaded(true);
 
       // Cache the dashboard data in localStorage with timestamp
-      localStorage.setItem("dashboardData", JSON.stringify(formattedData))
-      localStorage.setItem("lastFetchTime", new Date().getTime().toString())
+      localStorage.setItem("dashboardData", JSON.stringify(formattedData));
+      localStorage.setItem("lastFetchTime", new Date().getTime().toString());
     } catch (error) {
-      console.error("Error fetching dashboard data:", error)
-      setError(error instanceof Error ? error.message : "Failed to load dashboard data. Please try again later.")
+      console.error("Error fetching dashboard data:", error);
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Failed to load dashboard data. Please try again later."
+      );
     } finally {
-      setDataLoading(false)
+      setDataLoading(false);
     }
-  }
+  };
 
   const fetchMyList = async (token: string) => {
     try {
-      setIsMyListLoading(true)
+      setIsMyListLoading(true);
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/search/my-list`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/search/my-list`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       if (!response.ok) {
-        throw new Error("Failed to fetch your list")
+        throw new Error("Failed to fetch your list");
       }
 
-      const data = await response.json()
+      const data = await response.json();
 
       // Ensure all list items have valid price data
-      const validatedItems = ensureValidPriceData(data.items || [], dashboardData?.stores || [])
-      setMyList(validatedItems)
+      const validatedItems = ensureValidPriceData(
+        data.items || [],
+        dashboardData?.stores || []
+      );
+      setMyList(validatedItems);
 
       // Cache the list data in localStorage
-      localStorage.setItem("myList", JSON.stringify(validatedItems))
+      localStorage.setItem("myList", JSON.stringify(validatedItems));
     } catch (error) {
-      console.error("Error fetching my list:", error)
-      toast.error("Failed to load your list")
+      console.error("Error fetching my list:", error);
+      toast.error("Failed to load your list");
     } finally {
-      setIsMyListLoading(false)
+      setIsMyListLoading(false);
     }
-  }
+  };
 
   const fetchPriceTrends = async (token: string) => {
     try {
-      setIsPriceTrendsLoading(true)
+      setIsPriceTrendsLoading(true);
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/dashboard/price-trends`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/dashboard/price-trends`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       if (!response.ok) {
-        throw new Error("Failed to fetch price trends")
+        throw new Error("Failed to fetch price trends");
       }
 
-      const data = await response.json()
-      setPriceTrends(data.trends || [])
+      const data = await response.json();
+      setPriceTrends(data.trends || []);
     } catch (error) {
-      console.error("Error fetching price trends:", error)
+      console.error("Error fetching price trends:", error);
       // Don't show error toast for this one, as it's not critical
     } finally {
-      setIsPriceTrendsLoading(false)
+      setIsPriceTrendsLoading(false);
     }
-  }
+  };
 
   const fetchMyPantryItems = async (token: string) => {
     try {
-      setIsMyPantryLoading(true)
+      setIsMyPantryLoading(true);
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/pantry-items/my-pantry`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/pantry-items/my-pantry`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       if (!response.ok) {
-        throw new Error("Failed to fetch your pantry items")
+        throw new Error("Failed to fetch your pantry items");
       }
 
-      const data = await response.json()
-      setMyPantryItems(data.pantryItems || [])
+      const data = await response.json();
+      setMyPantryItems(data.pantryItems || []);
     } catch (error) {
-      console.error("Error fetching my pantry items:", error)
+      console.error("Error fetching my pantry items:", error);
       // Don't show error toast for this one, as it's not critical
     } finally {
-      setIsMyPantryLoading(false)
+      setIsMyPantryLoading(false);
     }
-  }
+  };
 
   const fetchMyPantryTrends = async (token: string) => {
     try {
-      setIsMyPantryTrendsLoading(true)
+      setIsMyPantryTrendsLoading(true);
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/pantry-items/my-pantry/trends`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/pantry-items/my-pantry/trends`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       if (!response.ok) {
-        throw new Error("Failed to fetch your pantry trends")
+        throw new Error("Failed to fetch your pantry trends");
       }
 
-      const data = await response.json()
-      setMyPantryTrends(data.pantryTrends || [])
+      const data = await response.json();
+      setMyPantryTrends(data.pantryTrends || []);
     } catch (error) {
-      console.error("Error fetching my pantry trends:", error)
+      console.error("Error fetching my pantry trends:", error);
       // Don't show error toast for this one, as it's not critical
     } finally {
-      setIsMyPantryTrendsLoading(false)
+      setIsMyPantryTrendsLoading(false);
     }
-  }
+  };
 
   const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
 
     if (!searchQuery.trim()) {
-      return
+      return;
     }
 
     try {
-      setIsSearching(true)
-      setSearchResults([])
+      setIsSearching(true);
+      setSearchResults([]);
 
-      const token = localStorage.getItem("token")
+      const token = localStorage.getItem("token");
 
       if (!token) {
-        router.push("/login")
-        return
+        router.push("/login");
+        return;
       }
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/search/products`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ query: searchQuery }),
-      })
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/search/products`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ query: searchQuery }),
+        }
+      );
 
       if (!response.ok) {
-        throw new Error("Search failed")
+        throw new Error("Search failed");
       }
 
-      const data = await response.json()
+      const data = await response.json();
 
       // Ensure all products have valid price data
-      const validatedProducts = ensureValidPriceData(data.products || [], dashboardData?.stores || [])
-      setSearchResults(validatedProducts)
+      const validatedProducts = ensureValidPriceData(
+        data.products || [],
+        dashboardData?.stores || []
+      );
+      setSearchResults(validatedProducts);
 
       // Switch to search results tab
-      setActiveTab("search")
+      setActiveTab("search");
 
       // Clear search input
       if (searchInputRef.current) {
-        searchInputRef.current.blur()
+        searchInputRef.current.blur();
       }
     } catch (error) {
-      console.error("Search error:", error)
-      toast.error("Search failed. Please try again.")
+      console.error("Search error:", error);
+      toast.error("Search failed. Please try again.");
     } finally {
-      setIsSearching(false)
+      setIsSearching(false);
     }
-  }
+  };
 
   const addToList = async (productId: string) => {
     try {
-      const token = localStorage.getItem("token")
+      const token = localStorage.getItem("token");
 
       if (!token) {
-        router.push("/login")
-        return
+        router.push("/login");
+        return;
       }
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/search/add-to-list`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ productId }),
-      })
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/search/add-to-list`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ productId }),
+        }
+      );
 
       if (!response.ok) {
-        throw new Error("Failed to add item to your list")
+        throw new Error("Failed to add item to your list");
       }
 
       // Refresh the list
-      fetchMyList(token)
+      fetchMyList(token);
 
-      toast.success("Added to your list!")
+      toast.success("Added to your list!");
     } catch (error) {
-      console.error("Error adding to list:", error)
-      toast.error("Failed to add item to your list")
+      console.error("Error adding to list:", error);
+      toast.error("Failed to add item to your list");
     }
-  }
+  };
 
   const removeFromList = async (productId: string) => {
     try {
-      const token = localStorage.getItem("token")
+      const token = localStorage.getItem("token");
 
       if (!token) {
-        router.push("/login")
-        return
+        router.push("/login");
+        return;
       }
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/search/remove-from-list`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ productId }),
-      })
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/search/remove-from-list`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ productId }),
+        }
+      );
 
       if (!response.ok) {
-        throw new Error("Failed to remove item from your list")
+        throw new Error("Failed to remove item from your list");
       }
 
       // Update the local list by filtering out the removed item
-      const updatedList = myList.filter((item) => item.id !== productId)
-      setMyList(updatedList)
+      const updatedList = myList.filter((item) => item.id !== productId);
+      setMyList(updatedList);
 
       // Update the cached list
-      localStorage.setItem("myList", JSON.stringify(updatedList))
+      localStorage.setItem("myList", JSON.stringify(updatedList));
 
-      toast.success("Item removed from your list!")
+      toast.success("Item removed from your list!");
     } catch (error) {
-      console.error("Error removing from list:", error)
-      toast.error("Failed to remove item from your list")
+      console.error("Error removing from list:", error);
+      toast.error("Failed to remove item from your list");
     }
-  }
+  };
 
   // Update the handleAddPantryItem function to handle errors better and provide more detailed feedback
 
   const handleAddPantryItem = async (item: {
-    name: string
-    category: string
-    type: string
-    size: string
-    unit: string
-    quantity: number
+    name: string;
+    category: string;
+    type: string;
+    size: string;
+    unit: string;
+    quantity: number;
   }) => {
     try {
-      const token = localStorage.getItem("token")
+      const token = localStorage.getItem("token");
 
       if (!token) {
-        router.push("/login")
-        return
+        router.push("/login");
+        return;
       }
 
-      setIsSubmitting(true) // Add this line to show loading state
+      setIsSubmitting(true); // Add this line to show loading state
 
-      console.log("Adding pantry item:", item)
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/pantry-items/my-pantry`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(item),
-      })
+      console.log("Adding pantry item:", item);
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/pantry-items/my-pantry`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(item),
+        }
+      );
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (!response.ok) {
-        console.error("Error response:", data)
-        throw new Error(data.message || "Failed to add item to your pantry")
+        console.error("Error response:", data);
+        throw new Error(data.message || "Failed to add item to your pantry");
       }
 
       // Close the modal
-      setIsAddPantryItemModalOpen(false)
+      setIsAddPantryItemModalOpen(false);
 
       // Refresh pantry items
-      fetchMyPantryItems(token)
-      fetchMyPantryTrends(token)
+      fetchMyPantryItems(token);
+      fetchMyPantryTrends(token);
 
-      toast.success("Item added to your pantry!")
+      toast.success("Item added to your pantry!");
     } catch (error) {
-      console.error("Error adding to pantry:", error)
-      toast.error(error instanceof Error ? error.message : "Failed to add item to your pantry")
+      console.error("Error adding to pantry:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to add item to your pantry"
+      );
     } finally {
-      setIsSubmitting(false) // Add this line to hide loading state
+      setIsSubmitting(false); // Add this line to hide loading state
     }
-  }
+  };
 
   const handleRetry = () => {
-    setRetryCount((prev) => prev + 1)
-  }
+    setRetryCount((prev) => prev + 1);
+  };
 
   const handleLogout = () => {
-    localStorage.removeItem("token")
-    localStorage.removeItem("user")
-    localStorage.removeItem("dashboardData")
-    localStorage.removeItem("myList")
-    localStorage.removeItem("lastFetchTime")
-    router.push("/login")
-  }
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("dashboardData");
+    localStorage.removeItem("myList");
+    localStorage.removeItem("lastFetchTime");
+    router.push("/login");
+  };
 
   const filteredPantryItems =
     selectedCategory === "all"
       ? dashboardData?.pantryItems || []
       : dashboardData?.pantryItems.filter((item) => {
-          if (selectedCategory === "healthy") return item.isHealthy
-          if (selectedCategory === "value") return item.isValuePick
-          if (selectedCategory === "bulk") return item.isBulkOption
-          return true
-        }) || []
+          if (selectedCategory === "healthy") return item.isHealthy;
+          if (selectedCategory === "value") return item.isValuePick;
+          if (selectedCategory === "bulk") return item.isBulkOption;
+          return true;
+        }) || [];
 
   const filteredProduceItems =
     selectedCategory === "all"
       ? dashboardData?.produceItems || []
       : dashboardData?.produceItems.filter((item) => {
-          if (selectedCategory === "healthy") return item.isHealthy
-          if (selectedCategory === "value") return item.isValuePick
-          if (selectedCategory === "bulk") return item.isBulkOption
-          return true
-        }) || []
+          if (selectedCategory === "healthy") return item.isHealthy;
+          if (selectedCategory === "value") return item.isValuePick;
+          if (selectedCategory === "bulk") return item.isBulkOption;
+          return true;
+        }) || [];
 
   if (loading) {
     return (
@@ -1055,62 +1175,62 @@ export default function DashboardPage() {
           <p className="mt-4">Loading your dashboard...</p>
         </div>
       </div>
-    )
+    );
   }
 
   if (!user) {
-    return null
+    return null;
   }
 
   const formatShoppingStyle = (style: string) => {
     switch (style) {
       case "bulk":
-        return "Bulk Buy Shopper"
+        return "Bulk Buy Shopper";
       case "value":
-        return "Value Shopper"
+        return "Value Shopper";
       case "health":
-        return "Health Conscious"
+        return "Health Conscious";
       case "budget":
-        return "Budget Shopper"
+        return "Budget Shopper";
       case "prepper":
-        return "Prepper/Pantry Stocker"
+        return "Prepper/Pantry Stocker";
       case "seasonal":
-        return "Seasonal Cook"
+        return "Seasonal Cook";
       case "homesteader":
-        return "Homesteader/Gardener"
+        return "Homesteader/Gardener";
       case "clean":
-        return "Clean Ingredient Shopper"
+        return "Clean Ingredient Shopper";
       default:
-        return style
+        return style;
     }
-  }
+  };
 
   // Get first name from full name
-  const firstName = user.firstName || user.fullName?.split(" ")[0] || "User"
+  const firstName = user.firstName || user.fullName?.split(" ")[0] || "User";
 
   // Check if Google Maps API key is available
-  const hasGoogleMapsApiKey = !!process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+  const hasGoogleMapsApiKey = !!process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
   // Format date for news items
   const formatNewsDate = (dateString: string) => {
-    if (!dateString) return ""
-    const date = new Date(dateString)
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" })
-  }
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  };
 
   // Format impact level for news items
   const formatImpactLevel = (level: string) => {
     switch (level?.toLowerCase()) {
       case "high":
-        return "High Impact"
+        return "High Impact";
       case "medium":
-        return "Medium Impact"
+        return "Medium Impact";
       case "low":
-        return "Low Impact"
+        return "Low Impact";
       default:
-        return level || "Unknown Impact"
+        return level || "Unknown Impact";
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -1221,37 +1341,61 @@ export default function DashboardPage() {
           <div className="px-2 pt-2 pb-3 space-y-1">
             <button
               onClick={() => setActiveTab("dashboard")}
-              className={`w-full text-left block px-3 py-2 rounded-md text-base font-medium ${activeTab === "dashboard" ? "text-gray-900 bg-gray-50" : "text-gray-700 hover:bg-gray-50"}`}
+              className={`w-full text-left block px-3 py-2 rounded-md text-base font-medium ${
+                activeTab === "dashboard"
+                  ? "text-gray-900 bg-gray-50"
+                  : "text-gray-700 hover:bg-gray-50"
+              }`}
             >
               Dashboard
             </button>
             <button
               onClick={() => setActiveTab("mylist")}
-              className={`w-full text-left block px-3 py-2 rounded-md text-base font-medium ${activeTab === "mylist" ? "text-gray-900 bg-gray-50" : "text-gray-700 hover:bg-gray-50"}`}
+              className={`w-full text-left block px-3 py-2 rounded-md text-base font-medium ${
+                activeTab === "mylist"
+                  ? "text-gray-900 bg-gray-50"
+                  : "text-gray-700 hover:bg-gray-50"
+              }`}
             >
               My List
             </button>
             <button
               onClick={() => setActiveTab("search")}
-              className={`w-full text-left block px-3 py-2 rounded-md text-base font-medium ${activeTab === "search" ? "text-gray-900 bg-gray-50" : "text-gray-700 hover:bg-gray-50"}`}
+              className={`w-full text-left block px-3 py-2 rounded-md text-base font-medium ${
+                activeTab === "search"
+                  ? "text-gray-900 bg-gray-50"
+                  : "text-gray-700 hover:bg-gray-50"
+              }`}
             >
               Search Results
             </button>
             <button
               onClick={() => setActiveTab("recipes")}
-              className={`w-full text-left block px-3 py-2 rounded-md text-base font-medium ${activeTab === "recipes" ? "text-gray-900 bg-gray-50" : "text-gray-700 hover:bg-gray-50"}`}
+              className={`w-full text-left block px-3 py-2 rounded-md text-base font-medium ${
+                activeTab === "recipes"
+                  ? "text-gray-900 bg-gray-50"
+                  : "text-gray-700 hover:bg-gray-50"
+              }`}
             >
               My Recipes
             </button>
             <button
               onClick={() => setActiveTab("bulkBuy")}
-              className={`w-full text-left block px-3 py-2 rounded-md text-base font-medium ${activeTab === "bulkBuy" ? "text-gray-900 bg-gray-50" : "text-gray-700 hover:bg-gray-50"}`}
+              className={`w-full text-left block px-3 py-2 rounded-md text-base font-medium ${
+                activeTab === "bulkBuy"
+                  ? "text-gray-900 bg-gray-50"
+                  : "text-gray-700 hover:bg-gray-50"
+              }`}
             >
               Bulk Buy Calculator
             </button>
             <button
               onClick={() => setActiveTab("myPantry")}
-              className={`w-full text-left block px-3 py-2 rounded-md text-base font-medium ${activeTab === "myPantry" ? "text-gray-900 bg-gray-50" : "text-gray-700 hover:bg-gray-50"}`}
+              className={`w-full text-left block px-3 py-2 rounded-md text-base font-medium ${
+                activeTab === "myPantry"
+                  ? "text-gray-900 bg-gray-50"
+                  : "text-gray-700 hover:bg-gray-50"
+              }`}
             >
               My Pantry
             </button>
@@ -1300,7 +1444,9 @@ export default function DashboardPage() {
                   <div className="h-full flex flex-col py-6 bg-white shadow-xl overflow-y-auto">
                     <div className="px-4 sm:px-6">
                       <div className="flex items-start justify-between">
-                        <h2 className="text-lg font-medium text-gray-900">User Settings</h2>
+                        <h2 className="text-lg font-medium text-gray-900">
+                          User Settings
+                        </h2>
                         <button
                           onClick={() => setIsSettingsOpen(false)}
                           className="rounded-md text-gray-400 hover:text-gray-500 focus:outline-none"
@@ -1313,7 +1459,9 @@ export default function DashboardPage() {
                     <div className="mt-6 relative flex-1 px-4 sm:px-6">
                       <div className="space-y-6">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700">ZIP Code</label>
+                          <label className="block text-sm font-medium text-gray-700">
+                            ZIP Code
+                          </label>
                           <input
                             type="text"
                             className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
@@ -1321,7 +1469,9 @@ export default function DashboardPage() {
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700">Shopping Style</label>
+                          <label className="block text-sm font-medium text-gray-700">
+                            Shopping Style
+                          </label>
                           <select
                             className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
                             defaultValue={user.shoppingStyle}
@@ -1330,10 +1480,16 @@ export default function DashboardPage() {
                             <option value="value">Value Shopper</option>
                             <option value="health">Health Conscious</option>
                             <option value="budget">Budget Shopper</option>
-                            <option value="prepper">Prepper/Pantry Stocker</option>
+                            <option value="prepper">
+                              Prepper/Pantry Stocker
+                            </option>
                             <option value="seasonal">Seasonal Cook</option>
-                            <option value="homesteader">Homesteader/Gardener</option>
-                            <option value="clean">Clean Ingredient Shopper</option>
+                            <option value="homesteader">
+                              Homesteader/Gardener
+                            </option>
+                            <option value="clean">
+                              Clean Ingredient Shopper
+                            </option>
                           </select>
                         </div>
                       </div>
@@ -1445,13 +1601,16 @@ export default function DashboardPage() {
                 <div className="md:flex md:items-center md:justify-between">
                   <div>
                     <h1 className="text-2xl font-bold text-gray-900">
-                      Hello {firstName}! Here's your shopping snapshot for {user.zipCode}
+                      Hello {firstName}! Here's your shopping snapshot for{" "}
+                      {user.zipCode}
                     </h1>
                     <p className="mt-2 text-sm text-gray-500">
-                      You selected: <span className="font-medium">{formatShoppingStyle(user.shoppingStyle)}</span>
+                      You selected:{" "}
+                      <span className="font-medium">
+                        {formatShoppingStyle(user.shoppingStyle)}
+                      </span>
                     </p>
                   </div>
-                  
                 </div>
               </motion.div>
 
@@ -1465,7 +1624,10 @@ export default function DashboardPage() {
               ) : error ? (
                 <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-md mb-8">
                   <p>{error}</p>
-                  <button onClick={handleRetry} className="mt-2 text-sm font-medium text-red-700 underline">
+                  <button
+                    onClick={handleRetry}
+                    className="mt-2 text-sm font-medium text-red-700 underline"
+                  >
                     Try again
                   </button>
                 </div>
@@ -1480,7 +1642,9 @@ export default function DashboardPage() {
                   >
                     {/* Google Map */}
                     <div className="lg:col-span-2 bg-white rounded-lg shadow-md p-6">
-                      <h2 className="text-lg font-medium text-gray-900 mb-4">Your Shopping Area</h2>
+                      <h2 className="text-lg font-medium text-gray-900 mb-4">
+                        Your Shopping Area
+                      </h2>
                       {hasGoogleMapsApiKey ? (
                         <>
                           <GoogleMap zipCode={user.zipCode} height="300px" />
@@ -1491,19 +1655,29 @@ export default function DashboardPage() {
 
                           {/* Nearby Stores List */}
                           <div className="mt-4">
-                            <h3 className="text-md font-medium text-gray-800 mb-2">Nearby Stores:</h3>
+                            <h3 className="text-md font-medium text-gray-800 mb-2">
+                              Nearby Stores:
+                            </h3>
                             <div className="space-y-2">
-                              {dashboardData?.stores && dashboardData.stores.length > 0 ? (
+                              {dashboardData?.stores &&
+                              dashboardData.stores.length > 0 ? (
                                 dashboardData.stores.map((store) => (
                                   <motion.div
                                     key={store._id}
                                     className="flex items-start border-b border-gray-100 pb-2"
                                     whileHover={{ x: 5 }}
-                                    transition={{ type: "spring", stiffness: 300 }}
+                                    transition={{
+                                      type: "spring",
+                                      stiffness: 300,
+                                    }}
                                   >
                                     <div className="flex-1">
-                                      <p className="font-medium text-sm">{store.name}</p>
-                                      <p className="text-xs text-gray-500">{store.address.formattedAddress}</p>
+                                      <p className="font-medium text-sm">
+                                        {store.name}
+                                      </p>
+                                      <p className="text-xs text-gray-500">
+                                        {store.address.formattedAddress}
+                                      </p>
                                     </div>
                                     <div className="text-xs text-gray-500">
                                       {store.rating && (
@@ -1522,14 +1696,18 @@ export default function DashboardPage() {
                                   </motion.div>
                                 ))
                               ) : (
-                                <p className="text-sm text-gray-500">No stores found in your area.</p>
+                                <p className="text-sm text-gray-500">
+                                  No stores found in your area.
+                                </p>
                               )}
                             </div>
                           </div>
                         </>
                       ) : (
                         <div className="h-[300px] flex items-center justify-center bg-gray-100 rounded-lg border border-gray-200">
-                          <p className="text-gray-500">Google Maps API key is required to display the map.</p>
+                          <p className="text-gray-500">
+                            Google Maps API key is required to display the map.
+                          </p>
                         </div>
                       )}
                     </div>
@@ -1541,7 +1719,8 @@ export default function DashboardPage() {
                         Best Value This Week
                       </h2>
                       <div className="space-y-4">
-                        {dashboardData?.buyAlerts && dashboardData.buyAlerts.length > 0 ? (
+                        {dashboardData?.buyAlerts &&
+                        dashboardData.buyAlerts.length > 0 ? (
                           dashboardData.buyAlerts.map((alert) => (
                             <motion.div
                               key={alert.id}
@@ -1554,15 +1733,24 @@ export default function DashboardPage() {
                                   <Tag className="h-5 w-5 text-green-600" />
                                 </div>
                                 <div className="ml-3">
-                                  <h3 className="text-sm font-medium text-gray-900">{alert.name}</h3>
+                                  <h3 className="text-sm font-medium text-gray-900">
+                                    {alert.name}
+                                  </h3>
                                   <p className="mt-1 text-sm text-gray-600">
-                                    ${alert.lowestPrice.price.toFixed(2)} @ {alert.lowestPrice.store}{" "}
+                                    ${alert.lowestPrice.price.toFixed(2)} @{" "}
+                                    {alert.lowestPrice.store}{" "}
                                     <span className="text-gray-500">
-                                      (was ${alert.priceRange.max.toFixed(2)} at highest)
+                                      (was ${alert.priceRange.max.toFixed(2)} at
+                                      highest)
                                     </span>
                                   </p>
                                   <p className="mt-1 text-sm font-medium text-green-700">
-                                    Save ${(alert.priceRange.max - alert.lowestPrice.price).toFixed(2)} per unit
+                                    Save $
+                                    {(
+                                      alert.priceRange.max -
+                                      alert.lowestPrice.price
+                                    ).toFixed(2)}{" "}
+                                    per unit
                                   </p>
                                   <button
                                     onClick={() => addToList(alert.id)}
@@ -1576,13 +1764,14 @@ export default function DashboardPage() {
                             </motion.div>
                           ))
                         ) : (
-                          <p className="text-sm text-gray-500">No special deals found this week.</p>
+                          <p className="text-sm text-gray-500">
+                            No special deals found this week.
+                          </p>
                         )}
-                        {dashboardData?.buyAlerts && dashboardData.buyAlerts.length > 0 && (
-                          <div className="text-center mt-4">
-                            
-                          </div>
-                        )}
+                        {dashboardData?.buyAlerts &&
+                          dashboardData.buyAlerts.length > 0 && (
+                            <div className="text-center mt-4"></div>
+                          )}
                       </div>
                     </div>
                   </motion.div>
@@ -1625,19 +1814,23 @@ export default function DashboardPage() {
                             whileHover={{ y: -5 }}
                             className="h-full"
                           >
-                            <ProductCard product={item} onAddToList={addToList} />
+                            <ProductCard
+                              product={item}
+                              onAddToList={addToList}
+                            />
                           </motion.div>
                         ))
                       ) : (
                         <div className="col-span-3 text-center py-8">
-                          <p className="text-gray-500">No pantry items found for the selected filter.</p>
+                          <p className="text-gray-500">
+                            No pantry items found for the selected filter.
+                          </p>
                         </div>
                       )}
                     </div>
 
                     {filteredPantryItems.length > 0 && (
-                      <div className="mt-6 text-center">
-                      </div>
+                      <div className="mt-6 text-center"></div>
                     )}
                   </motion.div>
 
@@ -1682,19 +1875,23 @@ export default function DashboardPage() {
                             whileHover={{ y: -5 }}
                             className="h-full"
                           >
-                            <ProductCard product={item} onAddToList={addToList} />
+                            <ProductCard
+                              product={item}
+                              onAddToList={addToList}
+                            />
                           </motion.div>
                         ))
                       ) : (
                         <div className="col-span-3 text-center py-8">
-                          <p className="text-gray-500">No produce items found for the selected filter.</p>
+                          <p className="text-gray-500">
+                            No produce items found for the selected filter.
+                          </p>
                         </div>
                       )}
                     </div>
 
                     {filteredProduceItems.length > 0 && (
-                      <div className="mt-6 text-center">
-                      </div>
+                      <div className="mt-6 text-center"></div>
                     )}
                   </motion.div>
 
@@ -1747,15 +1944,20 @@ export default function DashboardPage() {
                             storeName={trend.storeName}
                             seasonalLow={trend.seasonalLow}
                             buyRecommendation={trend.buyRecommendation}
-                            buyRecommendationReason={trend.buyRecommendationReason}
+                            buyRecommendationReason={
+                              trend.buyRecommendationReason
+                            }
                           />
                         ))}
                       </div>
                     ) : (
                       <div className="text-center py-8">
-                        <p className="text-gray-500">No price trends available at this time.</p>
+                        <p className="text-gray-500">
+                          No price trends available at this time.
+                        </p>
                         <p className="mt-2 text-sm text-gray-400">
-                          Add items to your pantry to start tracking price trends.
+                          Add items to your pantry to start tracking price
+                          trends.
                         </p>
                       </div>
                     )}
@@ -1773,7 +1975,8 @@ export default function DashboardPage() {
                       This Week's Food News
                     </h2>
                     <div className="space-y-4">
-                      {dashboardData?.newsHighlights && dashboardData.newsHighlights.length > 0 ? (
+                      {dashboardData?.newsHighlights &&
+                      dashboardData.newsHighlights.length > 0 ? (
                         dashboardData.newsHighlights.map((news, index) => (
                           <motion.div
                             key={news.id}
@@ -1783,28 +1986,53 @@ export default function DashboardPage() {
                             transition={{ delay: 0.1 * index }}
                             whileHover={{ x: 5 }}
                           >
-                            <div className="flex-shrink-0 bg-blue-100 rounded-full p-1">
-                              {news.category === "Weather" && <AlertCircle className="h-5 w-5 text-orange-600" />}
-                              {news.category === "Supply Chain" && <Truck className="h-5 w-5 text-blue-600" />}
-                              {news.category === "Economic" && <Info className="h-5 w-5 text-purple-600" />}
-                              {!["Weather", "Supply Chain", "Economic"].includes(news.category) && (
-                                <Info className="h-5 w-5 text-green-600" />
-                              )}
-                            </div>
-                            <div className="ml-3">
-                              <div className="flex items-center">
-                                <p className="text-sm text-gray-700 font-medium">{news.title}</p>
-                                <span className="ml-2 text-xs text-gray-500">{formatNewsDate(news.publishedAt)}</span>
+                            <a
+                              href={news.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-start w-full"
+                            >
+                              <div className="flex-shrink-0 bg-blue-100 rounded-full p-1">
+                                {news.category === "Weather" && (
+                                  <AlertCircle className="h-5 w-5 text-orange-600" />
+                                )}
+                                {news.category === "Supply Chain" && (
+                                  <Truck className="h-5 w-5 text-blue-600" />
+                                )}
+                                {news.category === "Economic" && (
+                                  <Info className="h-5 w-5 text-purple-600" />
+                                )}
+                                {![
+                                  "Weather",
+                                  "Supply Chain",
+                                  "Economic",
+                                ].includes(news.category) && (
+                                  <Info className="h-5 w-5 text-green-600" />
+                                )}
                               </div>
-                              <p className="text-xs text-gray-500 mt-1">{news.summary}</p>
-                              <span className="inline-block mt-1 text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded">
-                                {formatImpactLevel(news.impactLevel)}
-                              </span>
-                            </div>
+                              <div className="ml-3">
+                                <div className="flex items-center">
+                                  <p className="text-sm text-gray-700 font-medium">
+                                    {news.title}
+                                  </p>
+                                  <span className="ml-2 text-xs text-gray-500">
+                                    {formatNewsDate(news.publishedAt)}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-gray-500 mt-1">
+                                  {news.summary}
+                                </p>
+                                <span className="inline-block mt-1 text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded">
+                                  {formatImpactLevel(news.impactLevel)}
+                                </span>
+                              </div>
+                            </a>
                           </motion.div>
                         ))
                       ) : (
-                        <p className="text-sm text-gray-500">No news updates available at this time.</p>
+                        <p className="text-sm text-gray-500">
+                          No news updates available at this time.
+                        </p>
                       )}
                     </div>
                   </motion.div>
@@ -1850,16 +2078,23 @@ export default function DashboardPage() {
                         whileHover={{ y: -5 }}
                         className="h-full"
                       >
-                        <ProductCard product={item} onRemoveFromList={removeFromList} isInList={true} />
+                        <ProductCard
+                          product={item}
+                          onRemoveFromList={removeFromList}
+                          isInList={true}
+                        />
                       </motion.div>
                     ))}
                   </div>
                 ) : (
                   <div className="text-center py-12">
                     <ShoppingBag className="h-12 w-12 mx-auto text-gray-300" />
-                    <p className="mt-4 text-gray-500">Your shopping list is empty.</p>
+                    <p className="mt-4 text-gray-500">
+                      Your shopping list is empty.
+                    </p>
                     <p className="mt-2 text-sm text-gray-400">
-                      Search for products or add items from the dashboard to build your list.
+                      Search for products or add items from the dashboard to
+                      build your list.
                     </p>
                   </div>
                 )}
@@ -1911,9 +2146,12 @@ export default function DashboardPage() {
                 ) : (
                   <div className="text-center py-12">
                     <Search className="h-12 w-12 mx-auto text-gray-300" />
-                    <p className="mt-4 text-gray-500">No products found for "{searchQuery}"</p>
+                    <p className="mt-4 text-gray-500">
+                      No products found for "{searchQuery}"
+                    </p>
                     <p className="mt-2 text-sm text-gray-400">
-                      Try a different search term or browse the dashboard for products.
+                      Try a different search term or browse the dashboard for
+                      products.
                     </p>
                   </div>
                 )}
@@ -2064,8 +2302,12 @@ export default function DashboardPage() {
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="font-medium">${item.lowestPrice.price.toFixed(2)}</p>
-                          <p className="text-xs text-gray-600">Qty: {item.quantity || 1}</p>
+                          <p className="font-medium">
+                            ${item.lowestPrice.price.toFixed(2)}
+                          </p>
+                          <p className="text-xs text-gray-600">
+                            Qty: {item.quantity || 1}
+                          </p>
                         </div>
                       </motion.div>
                     ))}
@@ -2092,7 +2334,8 @@ export default function DashboardPage() {
                     </svg>
                     <p className="mt-4 text-gray-500">Your pantry is empty.</p>
                     <p className="mt-2 text-sm text-gray-400">
-                      Add items to your pantry to track prices and get alerts when prices drop.
+                      Add items to your pantry to track prices and get alerts
+                      when prices drop.
                     </p>
                     <button
                       onClick={() => setIsAddPantryItemModalOpen(true)}
@@ -2154,7 +2397,9 @@ export default function DashboardPage() {
                   </div>
                 ) : (
                   <div className="text-center py-12">
-                    <p className="text-gray-500">No price trends available for your pantry items.</p>
+                    <p className="text-gray-500">
+                      No price trends available for your pantry items.
+                    </p>
                     <p className="mt-2 text-sm text-gray-400">
                       Add items to your pantry to start tracking price trends.
                     </p>
@@ -2170,12 +2415,15 @@ export default function DashboardPage() {
         <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
             <p className="text-sm text-gray-500">
-              &copy; {new Date().getFullYear()} Pantry Tracker. All rights reserved.
+              &copy; {new Date().getFullYear()} Pantry Tracker. All rights
+              reserved.
             </p>
-            <p className="text-sm text-gray-500">Data updated weekly on Sundays</p>
+            <p className="text-sm text-gray-500">
+              Data updated weekly on Sundays
+            </p>
           </div>
         </div>
       </footer>
     </div>
-  )
+  );
 }
